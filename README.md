@@ -24,6 +24,11 @@ der Telegram-API.
 
 ## 2. Installation auf dem VPS
 
+> Du lässt Claude Code auf dem VPS arbeiten? Dann gib ihm einfach
+> `deploy/VPS-DEPLOY.md` — das Runbook führt Schritt für Schritt durch
+> Portwahl, Installation, nginx und certbot, mit Verifikation nach jedem
+> Schritt.
+
 ```bash
 ssh root@dein-vps
 apt-get update && apt-get install -y git
@@ -215,6 +220,7 @@ app/
 deploy/
   install.sh           Installationsskript für den VPS
   update.sh            git pull + Neuinstallation
+  VPS-DEPLOY.md        Runbook fuer einen Agenten (Port, nginx, certbot)
   supbot.service       systemd-Unit
   nginx.conf.example   Reverse-Proxy-Vorlage
 ```
