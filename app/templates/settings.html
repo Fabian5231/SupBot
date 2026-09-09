@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Einstellungen · SupBot{% endblock %}
+
+{% block content %}
+<h1>Einstellungen</h1>
+
+{% if sent == 'ok' %}<div class="alert ok">Testnachricht verschickt ✅</div>{% endif %}
+{% if sent == 'fail' %}<div class="alert warn">Konnte nicht senden – Token oder Chat-ID prüfen.</div>{% endif %}
+
+<section class="card">
+  <h2>Zeit-Slots</h2>
+  <p class="muted">Jeder Slot ist ein Erinnerungszeitpunkt. Zeitzone: <code>{{ tz }}</code>, aktuell {{ now.strftime("%H:%M") }} Uhr.</p>
+  <div class="list">
+    {% for slot in slots %}
+    <form method="post" action="/einstellungen/slot" class="list-row inline-form">
+      <input type="hidden" name="id" value="{{ slot.id }}">
+      <input name="name" value="{{ slot.name }}" class="grow">
+      <input type="time" name="time" value="{{ slot.time }}">
+      <label class="switch small">
+        <input type="checkbox" name="active" value="1" {{ 'checked' if slot.active }}>
+        <span>aktiv</span>
+      </label>
+      <button class="btn ghost small">Speichern</button>
+      <button class="btn danger small" formaction="/einstellungen/slot/{{ slot.id }}/loeschen"
+              formmethod="post" onclick="return confirm('Slot inkl. Einnahmen löschen?')">×</button>
+    </form>
+    {% endfor %}
+  </div>
+  <form method="post" action="/einstellungen/slot" class="inline-form spaced">
+    <input name="name" placeholder="Neuer Slot, z. B. Nachts" required class="grow">
+    <input type="time" name="time" value="22:00" required>
+    <input type="hidden" name="active" value="1">
+    <button class="btn small">Anlegen</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Telegram & Erinnerungen</h2>
+  <p class="muted">
+    Bot-Token: {% if telegram_on %}<span class="pill done">gesetzt</span>{% else %}<span class="pill empty">fehlt – in <code>.env</code> eintragen</span>{% endif %}
+    · Chat-ID: {% if chat_id %}<code>{{ chat_id }}</code>{% else %}<em>noch keine – schreib dem Bot <code>/start</code></em>{% endif %}
+  </p>
+  <form method="post" action="/einstellungen/speichern" class="form">
+    <div class="grid-2">
+      <label>Wiederholung alle … Minuten
+        <input name="reminder_interval_min" inputmode="numeric" value="{{ settings.reminder_interval_min }}">
+      </label>
+      <label>Max. Erinnerungen pro Slot/Tag
+        <input name="max_reminders" inputmode="numeric" value="{{ settings.max_reminders }}">
+      </label>
+      <label>Ruhe ab
+        <input type="time" name="quiet_from" value="{{ settings.quiet_from }}">
+      </label>
+      <label>Ruhe bis
+        <input type="time" name="quiet_to" value="{{ settings.quiet_to }}">
+      </label>
+      <label>Warnung ab Reichweite (Tage)
+        <input name="low_stock_days" inputmode="numeric" value="{{ settings.low_stock_days }}">
+      </label>
+      <label>Chat-ID
+        <input name="chat_id" value="{{ settings.chat_id }}" placeholder="wird per /start gesetzt">
+      </label>
+    </div>
+    <label>Codewörter (kommagetrennt)
+      <input name="codewords" value="{{ settings.codewords }}">
+    </label>
+    <p class="muted small">
+      Die erste Erinnerung kommt immer pünktlich zum Slot – auch in der Ruhezeit.
+      Wiederholt wird nur außerhalb der Ruhezeit.
+    </p>
+    <div class="actions">
+      <button class="btn" type="submit">Speichern</button>
+    </div>
+  </form>
+  <form method="post" action="/einstellungen/test" class="spaced">
+    <button class="btn ghost">Testnachricht senden</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Bot-Befehle</h2>
+  <ul class="cmds">
+    <li><code>/start</code> – verbindet den Chat (setzt die Chat-ID)</li>
+    <li><code>/heute</code> – Tagesplan mit Status</li>
+    <li><code>/vorrat</code> – Reichweite aller Packungen</li>
+    <li><code>/genommen</code> oder ein Codewort – alles Fällige abhaken</li>
+    <li><code>/snooze</code> – 30 Minuten Ruhe</li>
+  </ul>
+  <p><a class="btn ghost small" href="/logout">Abmelden</a></p>
+</section>
+{% endblock %}

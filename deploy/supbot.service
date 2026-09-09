@@ -1,0 +1,26 @@
+[Unit]
+Description=SupBot – Supplement-Tracker mit Telegram-Erinnerungen
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=supbot
+Group=supbot
+WorkingDirectory=/opt/supbot
+EnvironmentFile=/opt/supbot/.env
+ExecStart=/opt/supbot/.venv/bin/uvicorn app.main:app --host ${SUPBOT_HOST} --port ${SUPBOT_PORT} --workers 1
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# Absicherung
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/supbot/data
+
+[Install]
+WantedBy=multi-user.target

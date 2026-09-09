@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Heute · SupBot{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div class="hero-head">
+    <a class="ghost-btn" href="/?day={{ prev_day }}" title="Vortag">‹</a>
+    <div>
+      <h1>{{ "Heute" if is_today else day|de_date }}</h1>
+      <p class="muted">{{ day.strftime("%A, %d.%m.%Y")|replace("Monday","Montag")|replace("Tuesday","Dienstag")|replace("Wednesday","Mittwoch")|replace("Thursday","Donnerstag")|replace("Friday","Freitag")|replace("Saturday","Samstag")|replace("Sunday","Sonntag") }}</p>
+    </div>
+    <a class="ghost-btn" href="/?day={{ next_day }}" title="Folgetag">›</a>
+  </div>
+
+  <div class="progress-ring">
+    <div class="bar"><span id="progress-bar" style="width: {{ stats.percent }}%"></span></div>
+    <div class="progress-meta">
+      <strong id="progress-text">{{ stats.done }}/{{ stats.total }}</strong>
+      <span class="muted">erledigt</span>
+      {% if streak %}<span class="badge">🔥 {{ streak }} Tage Serie</span>{% endif %}
+    </div>
+  </div>
+</section>
+
+{% if low %}
+<div class="alert">
+  <strong>🛒 Nachbestellen:</strong>
+  {% for entry in low %}
+    <a href="/vorrat">{{ entry.supplement.name }}</a> ({{ entry.days_left }} T{{ ", " if not loop.last }})
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if not plan %}
+<div class="card empty">
+  <p>Für diesen Tag ist nichts geplant.</p>
+  <a class="btn" href="/supplemente">Supplement anlegen</a>
+</div>
+{% endif %}
+
+{% for slot in plan %}
+<section class="card slot {{ 'complete' if slot.complete }}" data-slot="{{ slot.slot_id }}">
+  <header class="slot-head">
+    <div>
+      <h2>{{ slot.name }}</h2>
+      <span class="muted">{{ slot.time }} Uhr · {{ slot.done }}/{{ slot.total }}</span>
+    </div>
+    {% if not slot.complete %}
+      <button class="btn small" data-slot-done="{{ slot.slot_id }}" data-day="{{ day }}">Alle abhaken</button>
+    {% else %}
+      <span class="pill done">✓ fertig</span>
+    {% endif %}
+  </header>
+
+  <ul class="intakes">
+    {% for item in slot['items'] %}
+    <li>
+      <label class="check {{ 'checked' if item.taken }}">
+        <input type="checkbox" data-intake="{{ item.id }}" {{ 'checked' if item.taken }}>
+        <span class="box"></span>
+        <span class="label">
+          <span class="name">{{ item.supplement_name }}</span>
+          <span class="muted dose">{{ item.amount|amount }} {{ item.unit }}{% if item.brand %} · {{ item.brand }}{% endif %}</span>
+        </span>
+        <span class="when muted">{% if item.taken and item.taken_at %}{{ item.taken_at[11:16] }}{% if item.source == 'telegram' %} ✈{% endif %}{% endif %}</span>
+      </label>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endfor %}
+{% endblock %}

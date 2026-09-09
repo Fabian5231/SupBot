@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Vorrat · SupBot{% endblock %}
+
+{% block content %}
+<h1>Vorrat & Artikel</h1>
+<p class="muted">
+  Reichweite = offener Bestand ÷ Tagesverbrauch aus dem Plan. Jedes Abhaken bucht
+  automatisch von der angebrochenen Packung ab.
+  {% if total_value %}<br>Wert des aktuellen Bestands (Kaufpreise): <strong>{{ "%.2f"|format(total_value) }} €</strong>{% endif %}
+</p>
+
+{% if not overview %}
+<div class="card empty">
+  <p>Noch keine Supplemente angelegt.</p>
+  <a class="btn" href="/supplemente">Jetzt anlegen</a>
+</div>
+{% endif %}
+
+{% for entry in overview %}
+{% set sup = entry.supplement %}
+<section class="card stock {{ 'inactive' if not sup.active }}">
+  <header class="stock-head">
+    <div>
+      <h2>
+        {% if entry.usage > 0 and entry.days_left is not none %}
+          {% if entry.days_left <= 7 %}🔴{% elif entry.days_left <= threshold %}🟡{% else %}🟢{% endif %}
+        {% else %}⚪{% endif %}
+        {{ sup.name }}
+        {% if sup.url %}<a class="muted small" href="{{ sup.url }}" target="_blank" rel="noopener">↗ Artikel</a>{% endif %}
+      </h2>
+      <span class="muted">{{ sup.brand or "ohne Marke" }}{% if not sup.active %} · pausiert{% endif %}</span>
+    </div>
+    <div class="stock-numbers">
+      <div><strong>{{ entry.stock|amount }}</strong><span class="muted">{{ sup.unit }} übrig</span></div>
+      <div><strong>{{ entry.usage|amount }}</strong><span class="muted">pro Tag</span></div>
+      {% if entry.days_left is not none %}
+      <div><strong>{{ entry.days_left }}</strong><span class="muted">Tage</span></div>
+      <div><strong>{{ entry.empty_on|de_short }}</strong><span class="muted">leer am</span></div>
+      {% else %}
+      <div><strong>–</strong><span class="muted">kein Plan</span></div>
+      {% endif %}
+    </div>
+  </header>
+
+  {% if entry.days_left is not none %}
+  <div class="bar thin">
+    <span style="width: {{ [entry.days_left * 100 // 90, 100]|min }}%"></span>
+  </div>
+  {% endif %}
+
+  {% if entry.packages %}
+  <table class="packages">
+    <thead><tr><th>Packung</th><th>Bestand</th><th>Preis</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+    {% for pkg in entry.packages %}
+      <tr class="{{ 'faded' if pkg.status == 'empty' }}">
+        <td>
+          {{ pkg.label or "Packung" }}
+          <div class="muted small">
+            {{ pkg.units_total|amount }} {{ sup.unit }}
+            {% if pkg.bought_at %} · gekauft {{ pkg.bought_at }}{% endif %}
+            {% if pkg.opened_at %} · offen seit {{ pkg.opened_at[:10] }}{% endif %}
+          </div>
+        </td>
+        <td>
+          <form method="post" action="/vorrat/packung/{{ pkg.id }}/korrigieren" class="inline-form">
+            <input type="text" inputmode="decimal" name="units_left" size="4" value="{{ pkg.units_left|amount }}">
+            <button class="btn ghost small" title="Bestand korrigieren">✓</button>
+          </form>
+        </td>
+        <td>{{ ("%.2f €"|format(pkg.price)) if pkg.price else "–" }}</td>
+        <td>
+          {% if pkg.status == 'open' %}<span class="pill open">angebrochen</span>
+          {% elif pkg.status == 'sealed' %}<span class="pill">ungeöffnet</span>
+          {% else %}<span class="pill empty">leer</span>{% endif %}
+        </td>
+        <td>
+          <form method="post" action="/vorrat/packung/{{ pkg.id }}/loeschen"
+                onsubmit="return confirm('Packung löschen?')">
+            <button class="btn danger small">×</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted small">Noch keine Packung erfasst.</p>
+  {% endif %}
+
+  <details class="add-package">
+    <summary>+ Packung hinzufügen</summary>
+    <form method="post" action="/vorrat/packung" class="form inline-grid">
+      <input type="hidden" name="supplement_id" value="{{ sup.id }}">
+      <label>Bezeichnung<input name="label" placeholder="z. B. 180er Dose"></label>
+      <label>Inhalt ({{ sup.unit }})<input name="units_total" inputmode="decimal" required placeholder="180"></label>
+      <label>Preis €<input name="price" inputmode="decimal" placeholder="19,90"></label>
+      <label>Gekauft am<input type="date" name="bought_at"></label>
+      <label>Status
+        <select name="status">
+          <option value="sealed">ungeöffnet</option>
+          <option value="open">angebrochen</option>
+        </select>
+      </label>
+      <button class="btn" type="submit">Hinzufügen</button>
+    </form>
+  </details>
+</section>
+{% endfor %}
+{% endblock %}

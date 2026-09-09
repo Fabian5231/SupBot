@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Anmelden · SupBot{% endblock %}
+
+{% block content %}
+<div class="login">
+  <div class="card">
+    <h1>💊 SupBot</h1>
+    <p class="muted">Bitte anmelden.</p>
+    {% if error %}<div class="alert warn">{{ error }}</div>{% endif %}
+    <form method="post" action="/login" class="form">
+      <label>Passwort
+        <input type="password" name="password" autofocus autocomplete="current-password">
+      </label>
+      <button class="btn" type="submit">Anmelden</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Supplemente · SupBot{% endblock %}
+
+{% block content %}
+<h1>Supplemente</h1>
+
+<section class="card">
+  <h2>{{ "Bearbeiten: " + editing.name if editing else "Neues Supplement" }}</h2>
+  <form method="post" action="/supplemente/speichern" class="form">
+    {% if editing %}<input type="hidden" name="id" value="{{ editing.id }}">{% endif %}
+
+    <div class="grid-2">
+      <label>Name
+        <input name="name" required value="{{ editing.name if editing else '' }}" placeholder="z. B. Vitamin D3">
+      </label>
+      <label>Marke
+        <input name="brand" value="{{ editing.brand if editing else '' }}" placeholder="z. B. Sunday Natural">
+      </label>
+      <label>Einheit
+        <select name="unit">
+          {% for unit in units %}
+          <option value="{{ unit }}" {{ 'selected' if editing and editing.unit == unit }}>{{ unit }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Link zum Artikel
+        <input name="url" value="{{ editing.url if editing else '' }}" placeholder="https://…">
+      </label>
+    </div>
+    <label>Notiz
+      <input name="notes" value="{{ editing.notes if editing else '' }}" placeholder="z. B. zum Essen einnehmen">
+    </label>
+
+    <h3>Einnahmeplan</h3>
+    {% if not slots %}
+      <p class="muted">Es gibt noch keine aktiven Zeit-Slots. <a href="/einstellungen">Slots anlegen</a>.</p>
+    {% endif %}
+    {% set current = plan_map.get(editing.id, {}) if editing else {} %}
+    {% for slot in slots %}
+      {% set entry = current.get(slot.id) %}
+      <div class="slot-row {{ 'on' if entry }}">
+        <label class="switch">
+          <input type="checkbox" name="slot_{{ slot.id }}" value="1" {{ 'checked' if entry }}>
+          <span>{{ slot.name }} <em class="muted">{{ slot.time }}</em></span>
+        </label>
+        <label class="inline">Menge
+          <input type="text" inputmode="decimal" name="amount_{{ slot.id }}" size="4"
+                 value="{{ entry.amount|amount if entry else '1' }}">
+        </label>
+        <div class="days">
+          {% set active_days = entry.weekdays if entry else '1234567' %}
+          {% for value, label in weekday_options %}
+          <label class="day">
+            <input type="checkbox" name="days_{{ slot.id }}" value="{{ value }}"
+                   {{ 'checked' if value in active_days }}>
+            <span>{{ label }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+
+    <div class="actions">
+      <button class="btn" type="submit">Speichern</button>
+      {% if editing %}<a class="btn ghost" href="/supplemente">Abbrechen</a>{% endif %}
+    </div>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Angelegt ({{ supplements|length }})</h2>
+  {% if not supplements %}<p class="muted">Noch nichts angelegt.</p>{% endif %}
+  <div class="list">
+    {% for sup in supplements %}
+    <div class="list-row {{ 'inactive' if not sup.active }}">
+      <div class="grow">
+        <strong>{{ sup.name }}</strong>
+        {% if sup.brand %}<span class="muted">· {{ sup.brand }}</span>{% endif %}
+        {% if not sup.active %}<span class="pill">pausiert</span>{% endif %}
+        <div class="muted small">
+          {% set entries = plan_map.get(sup.id, {}) %}
+          {% if entries %}
+            {% for slot in slots %}{% set e = entries.get(slot.id) %}{% if e %}
+              {{ slot.name }} {{ e.amount|amount }} {{ sup.unit }}{% if e.weekdays != '1234567' %} ({{ e.weekdays|weekdays }}){% endif %}{{ " · " if not loop.last }}
+            {% endif %}{% endfor %}
+          {% else %}kein Plan hinterlegt{% endif %}
+        </div>
+        {% if sup.notes %}<div class="muted small">📝 {{ sup.notes }}</div>{% endif %}
+      </div>
+      <div class="row-actions">
+        <a class="btn ghost small" href="/supplemente?edit={{ sup.id }}">Bearbeiten</a>
+        <form method="post" action="/supplemente/{{ sup.id }}/aktiv">
+          <button class="btn ghost small">{{ "Fortsetzen" if not sup.active else "Pausieren" }}</button>
+        </form>
+        <form method="post" action="/supplemente/{{ sup.id }}/loeschen"
+              onsubmit="return confirm('{{ sup.name }} inkl. Historie löschen?')">
+          <button class="btn danger small">×</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

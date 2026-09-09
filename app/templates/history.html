@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Verlauf · SupBot{% endblock %}
+
+{% block content %}
+<h1>Verlauf</h1>
+
+<section class="card">
+  <div class="stats-row">
+    <div><strong>{{ average if average is not none else "–" }}{% if average is not none %} %{% endif %}</strong><span class="muted">Quote ({{ days }} Tage)</span></div>
+    <div><strong>🔥 {{ streak }}</strong><span class="muted">Tage Serie</span></div>
+  </div>
+  <div class="range">
+    {% for option in [14, 30, 60, 90] %}
+      <a class="btn ghost small {{ 'active' if days == option }}" href="/verlauf?days={{ option }}">{{ option }} T</a>
+    {% endfor %}
+  </div>
+  <div class="heatmap">
+    {% for entry in grid %}
+      <span class="cell {% if entry.percent is none %}none{% elif entry.percent == 100 %}full{% elif entry.percent >= 50 %}half{% else %}low{% endif %}"
+            title="{{ entry.day|de_date }} – {{ entry.done }}/{{ entry.total }}"></span>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="card">
+  <table class="history">
+    <thead><tr><th>Tag</th><th>Erledigt</th><th>Quote</th></tr></thead>
+    <tbody>
+      {% for entry in entries %}
+      <tr>
+        <td>{{ entry.weekday }} <a href="/?day={{ entry.day }}">{{ entry.day|de_date }}</a></td>
+        <td>{{ entry.done }}/{{ entry.total }}</td>
+        <td>
+          {% if entry.percent is none %}<span class="muted">–</span>
+          {% else %}
+          <div class="bar thin inline-bar"><span style="width: {{ entry.percent }}%"></span></div>
+          {{ entry.percent }} %
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
