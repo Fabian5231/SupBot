@@ -10,6 +10,8 @@
   --warn: #fbbf24;
   --danger: #f87171;
   --radius: 14px;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 8px 24px -16px rgba(0, 0, 0, .8);
+  --hover: rgba(255, 255, 255, .04);
 }
 
 @media (prefers-color-scheme: light) {
@@ -22,6 +24,8 @@
     --muted: #6b7280;
     --accent: #16a34a;
     --accent-dim: #15803d;
+    --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 10px 30px -20px rgba(16, 24, 40, .45);
+    --hover: rgba(16, 24, 40, .035);
   }
 }
 
@@ -77,16 +81,25 @@ code { background: var(--surface-2); padding: .1em .4em; border-radius: 5px; fon
   border-radius: var(--radius);
   padding: 1rem;
   margin-bottom: 1rem;
+  box-shadow: var(--shadow);
 }
 .card.empty { text-align: center; color: var(--muted); }
 .card.inactive { opacity: .55; }
 
-.hero { margin-bottom: 1rem; }
+.hero {
+  margin-bottom: 1rem;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 10%, var(--surface)), var(--surface));
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1rem;
+  box-shadow: var(--shadow);
+}
 .hero-head { display: flex; align-items: center; gap: .75rem; }
 .hero-head > div { flex: 1; text-align: center; }
+.hero-head h1 { letter-spacing: -.01em; }
 .hero-head p { margin: 0; font-size: .9rem; }
 
-.progress-ring { margin-top: .75rem; }
+.progress-ring { margin-top: .9rem; }
 .progress-meta { display: flex; align-items: center; gap: .5rem; margin-top: .4rem; font-size: .9rem; }
 
 .bar {
@@ -118,16 +131,24 @@ code { background: var(--surface-2); padding: .1em .4em; border-radius: 5px; fon
   display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;
   margin-bottom: .5rem;
 }
-.slot.complete { border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
+.slot.complete {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+  background: color-mix(in srgb, var(--accent) 5%, var(--surface));
+}
+.slot-head h2 { letter-spacing: -.01em; }
 
 .intakes { list-style: none; margin: 0; padding: 0; }
 .intakes li + li { border-top: 1px solid var(--line); }
 
 .check {
-  display: flex; align-items: center; gap: .75rem;
-  padding: .65rem .25rem; cursor: pointer; user-select: none;
+  display: flex; flex-direction: row; align-items: center; gap: .7rem;
+  font-size: 1rem; color: var(--text);
+  padding: .6rem .5rem; margin: 0 -.5rem; border-radius: 10px;
+  cursor: pointer; user-select: none; transition: background .15s ease;
 }
+.check:hover { background: var(--hover); }
 .check input { position: absolute; opacity: 0; width: 0; height: 0; }
+.check input:focus-visible + .box { outline: 2px solid var(--accent-dim); outline-offset: 2px; }
 .check .box {
   flex: none; width: 24px; height: 24px; border-radius: 7px;
   border: 2px solid var(--line); background: var(--surface-2);
@@ -139,23 +160,46 @@ code { background: var(--surface-2); padding: .1em .4em; border-radius: 5px; fon
 }
 .check.checked .box { background: var(--accent); border-color: var(--accent); }
 .check.checked .box::after { opacity: 1; transform: scale(1); }
-.check .label { display: flex; flex-direction: column; line-height: 1.25; }
+
+/* Ein Supplement = eine Zeile: Name, Dosis und Marke nebeneinander. */
+.check .label {
+  display: flex; align-items: baseline; gap: .5rem;
+  flex: 1; min-width: 0; white-space: nowrap; overflow: hidden;
+}
+.check .name {
+  flex: 0 0 auto; max-width: 60%; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.check .dose { flex: none; font-size: .85rem; font-weight: 400; color: var(--muted); }
+.check .vendor {
+  flex: 0 1 auto; min-width: 0; font-size: .85rem; font-weight: 400; color: var(--muted);
+  overflow: hidden; text-overflow: ellipsis;
+}
+.check .dose::before, .check .vendor::before {
+  content: "·"; margin-right: .5rem; color: var(--line);
+}
 .check.checked .name { text-decoration: line-through; color: var(--muted); }
-.check .dose { font-size: .82rem; }
-.check .when { margin-left: auto; font-size: .8rem; white-space: nowrap; }
+.check .when { margin-left: auto; flex: none; font-size: .8rem; white-space: nowrap; }
 
 /* ---------- Buttons ---------- */
 .btn {
   display: inline-block; background: var(--accent); color: #06210f; border: 1px solid transparent;
   border-radius: 9px; padding: .5rem .9rem; font: inherit; font-weight: 600;
   cursor: pointer; text-decoration: none; white-space: nowrap;
+  transition: background .15s ease, border-color .15s ease, transform .08s ease;
 }
 .btn:hover { background: var(--accent-dim); }
+.btn:active { transform: translateY(1px); }
 .btn.small { padding: .3rem .6rem; font-size: .85rem; }
+.btn.icon {
+  padding: 0; width: 30px; height: 30px; font-size: .85rem; font-weight: 400;
+  display: inline-grid; place-items: center; line-height: 1;
+}
 .btn.ghost { background: transparent; color: var(--text); border-color: var(--line); }
 .btn.ghost:hover { background: var(--surface-2); }
 .btn.ghost.active { border-color: var(--accent); color: var(--accent); }
 .btn.danger { background: transparent; color: var(--danger); border-color: var(--line); padding: .3rem .55rem; }
+.btn.danger.icon { font-size: 1.1rem; }
 .btn.danger:hover { background: color-mix(in srgb, var(--danger) 20%, transparent); }
 .ghost-btn {
   text-decoration: none; color: var(--muted); font-size: 1.5rem; line-height: 1;
@@ -209,12 +253,36 @@ label.inline { flex-direction: row; align-items: center; gap: .4rem; }
 /* ---------- Listen & Tabellen ---------- */
 .list-row {
   display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
-  padding: .65rem 0; border-bottom: 1px solid var(--line);
+  padding: .55rem .5rem; margin: 0 -.5rem; border-radius: 10px;
+  border-bottom: 1px solid var(--line);
+  transition: background .15s ease;
 }
+.list-row:hover { background: var(--hover); }
+.list-row.supplement-row { flex-wrap: nowrap; }
+/* Slot-Zeilen in den Einstellungen: Name bleibt lesbar, Rest bricht um. */
+.list-row .inline-form input[name="name"], .list-row input[name="name"] { min-width: 7rem; }
 .list-row:last-child { border-bottom: none; }
 .list-row.inactive { opacity: .55; }
-.row-actions { display: flex; gap: .35rem; align-items: center; margin-left: auto; }
+.row-actions { display: flex; gap: .35rem; align-items: center; margin-left: auto; flex: none; }
 .row-actions form { display: inline; }
+
+/* Ein Supplement = eine Zeile: Name, Marke, Plan und Notiz nebeneinander. */
+.line {
+  display: flex; align-items: baseline; gap: .5rem;
+  min-width: 0; white-space: nowrap; overflow: hidden;
+}
+.line .name { flex: 0 0 auto; max-width: 50%; overflow: hidden; text-overflow: ellipsis; }
+.line .vendor {
+  flex: 0 0 auto; max-width: 26%; font-weight: 400; color: var(--muted);
+  overflow: hidden; text-overflow: ellipsis;
+}
+.line .plan { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.line .note { flex: 0 6 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.line .pill { flex: none; }
+.line .vendor::before, .line .plan::before, .line .note::before {
+  content: "·"; margin-right: .5rem; color: var(--line);
+}
+.line .note::before { content: none; }
 
 table { width: 100%; border-collapse: collapse; font-size: .9rem; }
 th { text-align: left; font-weight: 600; color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; }
@@ -248,4 +316,8 @@ tr.faded { opacity: .5; }
   .stock-head { flex-direction: column; }
   .stock-numbers { text-align: left; }
   main { padding: .75rem .75rem 0; }
+  /* Zeile bleibt eine Zeile: auf dem Handy zaehlt der Name, Details im Formular. */
+  .line .vendor, .line .plan, .line .note { display: none; }
+  .line .name { max-width: 100%; }
+  .check .vendor { display: none; }
 }

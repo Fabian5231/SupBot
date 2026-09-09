@@ -72,29 +72,32 @@
   {% if not supplements %}<p class="muted">Noch nichts angelegt.</p>{% endif %}
   <div class="list">
     {% for sup in supplements %}
-    <div class="list-row {{ 'inactive' if not sup.active }}">
-      <div class="grow">
-        <strong>{{ sup.name }}</strong>
-        {% if sup.brand %}<span class="muted">· {{ sup.brand }}</span>{% endif %}
+    {% set entries = plan_map.get(sup.id, {}) %}
+    {% set parts = [] %}
+    {% for slot in slots %}{% set e = entries.get(slot.id) %}{% if e %}
+      {% set _ = parts.append(slot.name ~ " " ~ (e.amount|amount) ~ " " ~ sup.unit ~ ((" (" ~ (e.weekdays|weekdays) ~ ")") if e.weekdays != "1234567" else "")) %}
+    {% endif %}{% endfor %}
+    {% set plan_text = parts|join(" · ") if parts else "kein Plan hinterlegt" %}
+    <div class="list-row supplement-row {{ 'inactive' if not sup.active }}">
+      <div class="grow line" title="{{ sup.name }} · {{ plan_text }}{% if sup.notes %} · {{ sup.notes }}{% endif %}">
+        <strong class="name">{{ sup.name }}</strong>
+        {% if sup.brand %}<span class="muted vendor">{{ sup.brand }}</span>{% endif %}
         {% if not sup.active %}<span class="pill">pausiert</span>{% endif %}
-        <div class="muted small">
-          {% set entries = plan_map.get(sup.id, {}) %}
-          {% if entries %}
-            {% for slot in slots %}{% set e = entries.get(slot.id) %}{% if e %}
-              {{ slot.name }} {{ e.amount|amount }} {{ sup.unit }}{% if e.weekdays != '1234567' %} ({{ e.weekdays|weekdays }}){% endif %}{{ " · " if not loop.last }}
-            {% endif %}{% endfor %}
-          {% else %}kein Plan hinterlegt{% endif %}
-        </div>
-        {% if sup.notes %}<div class="muted small">📝 {{ sup.notes }}</div>{% endif %}
+        <span class="muted small plan">{{ plan_text }}</span>
+        {% if sup.notes %}<span class="muted small note">📝 {{ sup.notes }}</span>{% endif %}
       </div>
       <div class="row-actions">
-        <a class="btn ghost small" href="/supplemente?edit={{ sup.id }}">Bearbeiten</a>
+        <a class="btn ghost icon" href="/supplemente?edit={{ sup.id }}"
+           title="Bearbeiten" aria-label="Bearbeiten">✎</a>
         <form method="post" action="/supplemente/{{ sup.id }}/aktiv">
-          <button class="btn ghost small">{{ "Fortsetzen" if not sup.active else "Pausieren" }}</button>
+          {% set label = "Fortsetzen" if not sup.active else "Pausieren" %}
+          <button class="btn ghost icon" title="{{ label }}" aria-label="{{ label }}">
+            {{ "▶" if not sup.active else "❚❚" }}
+          </button>
         </form>
         <form method="post" action="/supplemente/{{ sup.id }}/loeschen"
               onsubmit="return confirm('{{ sup.name }} inkl. Historie löschen?')">
-          <button class="btn danger small">×</button>
+          <button class="btn danger icon" title="Löschen" aria-label="Löschen">×</button>
         </form>
       </div>
     </div>

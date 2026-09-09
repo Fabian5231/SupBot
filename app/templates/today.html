@@ -26,7 +26,7 @@
 <div class="alert">
   <strong>🛒 Nachbestellen:</strong>
   {% for entry in low %}
-    <a href="/vorrat">{{ entry.supplement.name }}</a> ({{ entry.days_left }} T{{ ", " if not loop.last }})
+    <a href="/vorrat">{{ entry.supplement.name }}</a> ({{ entry.days_left }} T){{ "," if not loop.last }}
   {% endfor %}
 </div>
 {% endif %}
@@ -55,12 +55,14 @@
   <ul class="intakes">
     {% for item in slot['items'] %}
     <li>
-      <label class="check {{ 'checked' if item.taken }}">
+      <label class="check {{ 'checked' if item.taken }}"
+             title="{{ item.supplement_name }} · {{ item.amount|amount }} {{ item.unit }}{% if item.brand %} · {{ item.brand }}{% endif %}">
         <input type="checkbox" data-intake="{{ item.id }}" {{ 'checked' if item.taken }}>
         <span class="box"></span>
         <span class="label">
           <span class="name">{{ item.supplement_name }}</span>
-          <span class="muted dose">{{ item.amount|amount }} {{ item.unit }}{% if item.brand %} · {{ item.brand }}{% endif %}</span>
+          <span class="dose">{{ item.amount|amount }} {{ item.unit }}</span>
+          {% if item.brand %}<span class="muted vendor">{{ item.brand }}</span>{% endif %}
         </span>
         <span class="when muted">{% if item.taken and item.taken_at %}{{ item.taken_at[11:16] }}{% if item.source == 'telegram' %} ✈{% endif %}{% endif %}</span>
       </label>
