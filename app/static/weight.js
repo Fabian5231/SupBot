@@ -3,7 +3,7 @@
   "use strict";
 
   const $ = (id) => document.getElementById(id);
-  const DEFAULT_CROP = { x: 0.15, y: 0.34, w: 0.70, h: 0.32 };
+  const DEFAULT_CROP = { x: 0.26, y: 0.40, w: 0.48, h: 0.18 };
   const MIN_CROP = 0.06;
   const ENTRY_PAGE = 12;
 

@@ -14,16 +14,16 @@
 </section>
 
 {% if not tesseract %}
-<div class="alert warn">
-  Tesseract ist auf dem Server nicht installiert. Die Fotoerkennung ist aus,
-  eintippen geht weiterhin.
+<div class="alert">
+  Tesseract fehlt auf dem Server. Die Leuchtziffern der Waage werden trotzdem
+  gelesen, nur der Rückfall für andere Anzeigen ist ausgeschaltet.
 </div>
 {% endif %}
 
 <section class="card">
   <input type="file" id="photo-input" accept="image/*" capture="environment" hidden>
   <div class="actions">
-    <button class="btn" id="btn-photo" {{ 'disabled' if not tesseract }}>📷 Waage fotografieren</button>
+    <button class="btn" id="btn-photo">📷 Waage fotografieren</button>
     <button class="btn ghost" id="btn-manual">Ohne Foto eintragen</button>
   </div>
 </section>
@@ -91,11 +91,7 @@
 
 {% block scripts %}
 <script>
-  window.WEIGHT = {
-    min: {{ min_kg }},
-    max: {{ max_kg }},
-    ocr: {{ 'true' if tesseract else 'false' }},
-  };
+  window.WEIGHT = { min: {{ min_kg }}, max: {{ max_kg }} };
 </script>
 <script src="/static/weight.js"></script>
 {% endblock %}

@@ -84,7 +84,14 @@ def _float(key: str, default: float) -> float:
 
 
 TESSERACT_CMD = _find_tesseract()
-TESSERACT_LANG = _env("SUPBOT_TESSERACT_LANG", "eng")
+
+# Mitgeliefertes Modell fuer Sieben-Segment-Anzeigen. Fehlt es, tut es auch
+# das systemeigene eng-Modell, nur mit mehr Fehlgriffen bei der Ziffer 0.
+TESSDATA_DIR = BASE_DIR / "tessdata"
+BUNDLED_MODEL = TESSDATA_DIR / "ssd.traineddata"
+TESSERACT_LANG = _env(
+    "SUPBOT_TESSERACT_LANG", "ssd" if BUNDLED_MODEL.is_file() else "eng"
+)
 WEIGHT_MIN_KG = _float("SUPBOT_WEIGHT_MIN_KG", 30.0)
 WEIGHT_MAX_KG = _float("SUPBOT_WEIGHT_MAX_KG", 250.0)
 KEEP_IMAGES = _env("SUPBOT_KEEP_IMAGES", "1").lower() in {"1", "true", "yes", "on", "ja"}

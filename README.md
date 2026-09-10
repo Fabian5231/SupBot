@@ -12,8 +12,7 @@ Kleiner Supplement-Tracker für den eigenen VPS:
   bestätigt und gespeichert – mit Verlauf, 7-Tage-Mittel und Statistik
 
 Ein einziger Python-Prozess, SQLite als Datenbank, keine externen Dienste außer
-der Telegram-API. Für die Gewichtserkennung kommt Tesseract dazu, das lokal auf
-dem Server läuft.
+der Telegram-API. Auch die Gewichtserkennung rechnet auf dem eigenen Server.
 
 ---
 
@@ -41,7 +40,7 @@ sudo bash deploy/install.sh
 ```
 
 > Das Repo ist privat – für `git clone` braucht der Server also Zugriff.
-> Zwei Wege, siehe [Abschnitt 7](#7-updates-über-git): Deploy-Key (empfohlen)
+> Zwei Wege, siehe [Abschnitt 8](#8-updates-über-git): Deploy-Key (empfohlen)
 > oder das Repo öffentlich schalten.
 
 Das Skript legt an:
@@ -102,9 +101,10 @@ freigeben – dann läuft es aber unverschlüsselt, also mindestens ein starkes
   das Datum „leer am“. Packungen anlegen, Bestand korrigieren, Preise erfassen.
 - **Gewicht** – Waage fotografieren, Rahmen über die Zahl ziehen, Wert prüfen
   und speichern. Darunter Kurve mit 7-Tage-Mittel und die Liste der Einträge.
-  Der Rahmen ist der wichtigste Hebel: je enger er um die Zahl liegt, desto
-  zuverlässiger wird gelesen. Seine Position bleibt gespeichert, einmal richtig
-  ziehen genügt also meist. Der erkannte Wert steht vor dem Speichern immer in
+  Gelesen wird die Anzeige direkt über ihre leuchtenden Balken, siehe
+  [Abschnitt 6](#6-wie-die-zahl-gelesen-wird). Der Rahmen muss deshalb nicht
+  exakt sitzen, enger hilft aber bei Spiegelungen. Seine Position bleibt
+  gespeichert. Der erkannte Wert steht vor dem Speichern immer in
   einem Feld mit Plus und Minus in 0,1er-Schritten, eine Fehlerkennung landet
   also nie ungeprüft in der Datenbank. Ein Eintrag je Tag, erneutes Speichern
   überschreibt ihn.
@@ -144,7 +144,30 @@ Weboberfläche abhakst, ist Ruhe.
 - Fällt die Reichweite unter die Warnschwelle (Standard 10 Tage), schickt der
   Bot einmal täglich ab 9 Uhr eine Nachbestell-Erinnerung.
 
-## 6. Lokal testen
+## 6. Wie die Zahl gelesen wird
+
+Die Waage zeigt Leuchtbalken, keine Schrift. Texterkennung tut sich damit
+schwer und liest die `0` gern als `9`. SupBot wertet deshalb zuerst die Balken
+selbst aus:
+
+1. Die hellsten Pixel im Ausschnitt sind die brennenden Segmente.
+2. Zeilen- und Spaltenprojektion trennen die Ziffern voneinander.
+3. Je Ziffer entscheiden sieben Fenster, welcher Balken leuchtet. Das Muster
+   ergibt die Ziffer.
+4. Das läuft mit einem Dutzend Helligkeitsschwellen. Was die Mehrheit
+   übereinstimmend liest, gilt; uneindeutige Bilder liefern lieber nichts.
+
+Wo der Punkt sitzt, verrät die Anzeige nicht zuverlässig. Aus `6330` können
+6330, 633,0 oder 63,30 werden. Die Plausibilitätsgrenzen
+(`SUPBOT_WEIGHT_MIN_KG`, `SUPBOT_WEIGHT_MAX_KG`) und der zuletzt gespeicherte
+Wert entscheiden, welche Lesart übrig bleibt.
+
+Erst wenn dieser Weg nichts hergibt, springt Tesseract ein, mit dem
+mitgelieferten Modell `tessdata/ssd.traineddata` für Sieben-Segment-Anzeigen.
+Bei einer Waage mit normaler Schrift statt Leuchtbalken gehört
+`SUPBOT_TESSERACT_LANG=eng` in die `.env`.
+
+## 7. Lokal testen
 
 ```bash
 python -m venv .venv
@@ -156,17 +179,17 @@ cp .env.example .env
 Ohne `SUPBOT_PASSWORD` läuft die Oberfläche ohne Login, ohne
 `SUPBOT_TELEGRAM_TOKEN` startet der Bot nicht – für lokale Tests praktisch.
 
-Für die Fotoerkennung braucht es Tesseract. Unter Windows:
+Tesseract ist nur der Rückfall und für die Waagen-Anzeige nicht nötig.
+Wer ihn trotzdem haben will, unter Windows:
 
 ```powershell
 winget install --id UB-Mannheim.TesseractOCR
 ```
 
 Der Standardpfad `C:\Program Files\Tesseract-OCR\tesseract.exe` wird
-automatisch gefunden. Fehlt Tesseract, bleibt die Seite nutzbar, das Gewicht
-wird dann nur eingetippt.
+automatisch gefunden.
 
-## 7. Updates über Git
+## 8. Updates über Git
 
 Auf dem Entwicklungsrechner:
 
@@ -213,7 +236,7 @@ git clone git@github.com:Fabian5231/SupBot.git /root/SupBot
 darauf, dass niemals eine `.env` committet wird – sie steht in `.gitignore`,
 und in der Datenbank (`data/`, ebenfalls ignoriert) liegen deine Daten.
 
-## 8. Betrieb
+## 9. Betrieb
 
 ```bash
 systemctl status supbot          # Status
@@ -239,11 +262,13 @@ app/
   db.py          SQLite-Schema, Verbindung, Settings-Tabelle
   services.py    Tagesplan, Abhaken, Vorrat, Reichweite, Verlauf
   weight.py      Tagesgewicht speichern, Statistik, Fotos aufräumen
-  ocr.py         Waagen-Foto zuschneiden, aufbereiten, Zahl lesen
+  ocr.py         Sieben-Segment-Decoder plus Tesseract als Rückfall
   telegram.py    Bot: Polling, Erinnerungsschleife, Befehle, Buttons
   main.py        FastAPI-Routen, Login, Task-Start
   templates/     Jinja2-Seiten
   static/        CSS und ein bisschen JS
+tessdata/
+  ssd.traineddata      Tesseract-Modell für Sieben-Segment-Anzeigen
 deploy/
   install.sh           Installationsskript für den VPS
   update.sh            git pull + Neuinstallation
