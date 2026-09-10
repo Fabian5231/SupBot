@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -51,3 +52,39 @@ DB_PATH = DATA_DIR / "supbot.db"
 
 COOKIE_NAME = "supbot_session"
 COOKIE_MAX_AGE = 60 * 60 * 24 * 90  # 90 Tage
+
+# ---- Gewicht --------------------------------------------------------------
+IMAGE_DIR = DATA_DIR / "images"
+
+WINDOWS_TESSERACT_CANDIDATES = (
+    r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+    r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+    str(Path.home() / r"AppData\Local\Programs\Tesseract-OCR\tesseract.exe"),
+)
+
+
+def _find_tesseract() -> str | None:
+    configured = _env("SUPBOT_TESSERACT_CMD") or _env("TESSERACT_CMD")
+    if configured:
+        return configured
+    found = shutil.which("tesseract")
+    if found:
+        return found
+    for candidate in WINDOWS_TESSERACT_CANDIDATES:
+        if Path(candidate).is_file():
+            return candidate
+    return None
+
+
+def _float(key: str, default: float) -> float:
+    try:
+        return float(_env(key, str(default)))
+    except ValueError:
+        return default
+
+
+TESSERACT_CMD = _find_tesseract()
+TESSERACT_LANG = _env("SUPBOT_TESSERACT_LANG", "eng")
+WEIGHT_MIN_KG = _float("SUPBOT_WEIGHT_MIN_KG", 30.0)
+WEIGHT_MAX_KG = _float("SUPBOT_WEIGHT_MAX_KG", 250.0)
+KEEP_IMAGES = _env("SUPBOT_KEEP_IMAGES", "1").lower() in {"1", "true", "yes", "on", "ja"}

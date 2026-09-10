@@ -83,6 +83,21 @@ CREATE TABLE IF NOT EXISTS settings (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
 );
+
+-- Tagesgewicht, ein Eintrag je Tag
+CREATE TABLE IF NOT EXISTS measurements (
+    id             INTEGER PRIMARY KEY,
+    day            TEXT    NOT NULL UNIQUE,                   -- YYYY-MM-DD
+    weight_kg      REAL    NOT NULL,
+    source         TEXT    NOT NULL DEFAULT 'manual',         -- ocr | manual | telegram
+    ocr_raw        TEXT,
+    ocr_confidence REAL,
+    image_path     TEXT,
+    note           TEXT,
+    created_at     TEXT    NOT NULL,
+    updated_at     TEXT    NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_measurements_day ON measurements(day DESC);
 """
 
 DEFAULT_SETTINGS = {

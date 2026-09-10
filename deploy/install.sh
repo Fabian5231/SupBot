@@ -10,7 +10,8 @@ SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 echo "==> Systempakete"
 if command -v apt-get >/dev/null; then
   apt-get update -qq
-  apt-get install -y python3 python3-venv python3-pip rsync git
+  # tesseract-ocr wird fuer die Gewichtserkennung aus dem Waagen-Foto gebraucht
+  apt-get install -y python3 python3-venv python3-pip rsync git tesseract-ocr
 fi
 
 echo "==> Benutzer $SERVICE_USER"

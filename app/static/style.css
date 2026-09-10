@@ -321,3 +321,93 @@ tr.faded { opacity: .5; }
   .line .name { max-width: 100%; }
   .check .vendor { display: none; }
 }
+
+/* ---------- Gewicht ---------- */
+[hidden] { display: none !important; }
+
+:root { --series-1: var(--accent); --series-2: #60a5fa; }
+@media (prefers-color-scheme: light) {
+  :root { --series-2: #2563eb; }
+}
+
+.weight-hero { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.weight-hero p { margin: .2rem 0 0; font-size: .9rem; }
+.weight-value { font-size: 2.6rem; font-weight: 700; line-height: 1; letter-spacing: -.02em; }
+.weight-value small { font-size: 1rem; font-weight: 500; color: var(--muted); margin-left: .3rem; }
+.weight-trend { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; }
+.weight-trend strong { font-size: 1.1rem; }
+.weight-trend .up { color: var(--danger); }
+.weight-trend .down { color: var(--accent); }
+
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; margin-top: 1rem; }
+.tile {
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px;
+  padding: .5rem; display: flex; flex-direction: column; gap: .1rem; line-height: 1.2;
+}
+.tile strong { font-size: 1.05rem; }
+
+/* Foto mit verschiebbarem Rahmen ueber der Anzeige */
+.crop-stage { position: relative; touch-action: none; user-select: none; margin-bottom: .5rem; }
+.crop-stage img { display: block; width: 100%; border-radius: 10px; }
+.crop-box {
+  position: absolute; border: 2px solid var(--accent); border-radius: 4px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, .45); cursor: move;
+}
+.crop-box .handle {
+  position: absolute; width: 26px; height: 26px; border-radius: 50%;
+  background: var(--accent); border: 2px solid var(--surface); touch-action: none;
+}
+.crop-box .nw { left: -13px; top: -13px; cursor: nwse-resize; }
+.crop-box .ne { right: -13px; top: -13px; cursor: nesw-resize; }
+.crop-box .sw { left: -13px; bottom: -13px; cursor: nesw-resize; }
+.crop-box .se { right: -13px; bottom: -13px; cursor: nwse-resize; }
+
+.stepper { display: flex; align-items: center; gap: .5rem; margin-top: .75rem; }
+.stepper > .btn { font-size: 1.3rem; line-height: 1; padding: .35rem .9rem; }
+.stepper-value {
+  flex: 1; display: flex; align-items: baseline; justify-content: center; gap: .35rem;
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: .4rem;
+}
+.stepper-value input {
+  width: 5.5rem; background: transparent; border: none; text-align: right;
+  font-size: 2rem; font-weight: 700; padding: 0;
+}
+.stepper-value input:focus { outline: none; }
+
+.candidates { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; margin-top: .6rem; }
+
+.legend { display: flex; gap: 1rem; font-size: .8rem; color: var(--muted); margin-bottom: .4rem; }
+.swatch { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: .35rem; }
+.chart { position: relative; }
+.chart svg { width: 100%; height: auto; display: block; }
+.chart-tooltip {
+  position: absolute; transform: translate(-50%, -100%); pointer-events: none;
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px;
+  padding: .35rem .5rem; font-size: .78rem; line-height: 1.4; white-space: nowrap;
+  box-shadow: var(--shadow);
+}
+.chart-tooltip strong { display: block; margin-bottom: .1rem; }
+.chart-tooltip span { display: block; }
+
+.entries { list-style: none; margin: 0; padding: 0; }
+.entries li {
+  display: flex; align-items: center; gap: .5rem;
+  padding: .5rem .25rem; border-bottom: 1px solid var(--line);
+}
+.entries li:last-child { border-bottom: none; }
+.e-day { flex: 1; min-width: 0; }
+.e-delta { width: 4rem; text-align: right; font-size: .85rem; color: var(--muted); }
+.e-delta.up { color: var(--danger); }
+.e-delta.down { color: var(--accent); }
+.e-weight { width: 5.5rem; text-align: right; font-weight: 600; }
+
+.toast {
+  position: fixed; left: 50%; bottom: 1.5rem; transform: translateX(-50%); z-index: 20;
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: 99px;
+  padding: .5rem 1rem; font-size: .9rem; box-shadow: var(--shadow); max-width: 90vw;
+}
+
+@media (max-width: 560px) {
+  .tiles { grid-template-columns: repeat(2, 1fr); }
+  .weight-value { font-size: 2.2rem; }
+}

@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Gewicht · SupBot{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div class="weight-hero">
+    <div>
+      <div class="weight-value"><span id="hero-weight">–</span><small>kg</small></div>
+      <p class="muted" id="hero-meta">Noch kein Eintrag</p>
+    </div>
+    <div class="weight-trend" id="hero-trend"></div>
+  </div>
+  <div class="tiles" id="tiles"></div>
+</section>
+
+{% if not tesseract %}
+<div class="alert warn">
+  Tesseract ist auf dem Server nicht installiert. Die Fotoerkennung ist aus,
+  eintippen geht weiterhin.
+</div>
+{% endif %}
+
+<section class="card">
+  <input type="file" id="photo-input" accept="image/*" capture="environment" hidden>
+  <div class="actions">
+    <button class="btn" id="btn-photo" {{ 'disabled' if not tesseract }}>📷 Waage fotografieren</button>
+    <button class="btn ghost" id="btn-manual">Ohne Foto eintragen</button>
+  </div>
+</section>
+
+<section class="card" id="review" hidden>
+  <div class="crop-stage" id="crop-stage" hidden>
+    <img id="preview" alt="Aufgenommenes Foto der Waage">
+    <div class="crop-box" id="crop-box">
+      <span class="handle nw" data-handle="nw"></span>
+      <span class="handle ne" data-handle="ne"></span>
+      <span class="handle sw" data-handle="sw"></span>
+      <span class="handle se" data-handle="se"></span>
+    </div>
+  </div>
+  <p class="muted small" id="crop-hint" hidden>Rahmen genau über die Zahl im Display ziehen.</p>
+
+  <button class="btn ghost spaced" id="btn-recognize" hidden>Gewicht erkennen</button>
+  <p class="muted small" id="ocr-status" hidden></p>
+
+  <div class="stepper">
+    <button class="btn ghost" data-step="-0.1" aria-label="0,1 kg weniger">−</button>
+    <div class="stepper-value">
+      <input type="text" id="weight-input" inputmode="decimal" autocomplete="off" placeholder="0,0">
+      <span class="muted">kg</span>
+    </div>
+    <button class="btn ghost" data-step="0.1" aria-label="0,1 kg mehr">+</button>
+  </div>
+
+  <div class="candidates" id="candidates" hidden></div>
+
+  <label class="spaced">Datum
+    <input type="date" id="day-input">
+  </label>
+
+  <div class="actions spaced">
+    <button class="btn" id="btn-save">Speichern</button>
+    <button class="btn ghost" id="btn-cancel">Abbrechen</button>
+  </div>
+</section>
+
+<section class="card">
+  <div class="stock-head">
+    <h2>Verlauf</h2>
+    <div class="range" id="range" role="group" aria-label="Zeitraum">
+      <button class="btn ghost small active" data-days="30">30 T</button>
+      <button class="btn ghost small" data-days="90">90 T</button>
+      <button class="btn ghost small" data-days="365">1 J</button>
+      <button class="btn ghost small" data-days="0">Alle</button>
+    </div>
+  </div>
+  <div class="legend" id="legend"></div>
+  <div class="chart" id="chart"><p class="muted">Noch keine Daten.</p></div>
+</section>
+
+<section class="card">
+  <div class="stock-head">
+    <h2>Einträge</h2>
+    <span class="muted small" id="entry-count"></span>
+  </div>
+  <ul class="entries" id="entries"></ul>
+</section>
+
+<div class="toast" id="toast" hidden></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.WEIGHT = {
+    min: {{ min_kg }},
+    max: {{ max_kg }},
+    ocr: {{ 'true' if tesseract else 'false' }},
+  };
+</script>
+<script src="/static/weight.js"></script>
+{% endblock %}

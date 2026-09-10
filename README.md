@@ -8,9 +8,12 @@ Kleiner Supplement-Tracker für den eigenen VPS:
 - **Artikel-/Vorratsverwaltung**: jede Packung hat einen Inhalt, jede Einnahme
   bucht ab – daraus berechnet SupBot Reichweite und das Datum, an dem die
   Packung leer ist, und meldet sich rechtzeitig zum Nachbestellen
+- **Gewicht**: abends die Waage fotografieren, die Zahl wird per OCR gelesen,
+  bestätigt und gespeichert – mit Verlauf, 7-Tage-Mittel und Statistik
 
 Ein einziger Python-Prozess, SQLite als Datenbank, keine externen Dienste außer
-der Telegram-API.
+der Telegram-API. Für die Gewichtserkennung kommt Tesseract dazu, das lokal auf
+dem Server läuft.
 
 ---
 
@@ -66,6 +69,9 @@ Wichtige Werte in `.env`:
 | `SUPBOT_SECRET` | Zufallsstring zum Signieren des Login-Cookies |
 | `SUPBOT_TZ` | Zeitzone, Standard `Europe/Berlin` |
 | `SUPBOT_HOST` / `SUPBOT_PORT` | Bind-Adresse, Standard `127.0.0.1:8080` |
+| `SUPBOT_TESSERACT_CMD` | Pfad zur Tesseract-Binary, leer = automatisch suchen |
+| `SUPBOT_WEIGHT_MIN_KG` / `SUPBOT_WEIGHT_MAX_KG` | Plausibilitätsgrenzen der Erkennung |
+| `SUPBOT_KEEP_IMAGES` | `0` verwirft die Fotos nach der Erkennung |
 
 ## 3. Erreichbar machen
 
@@ -94,6 +100,14 @@ freigeben – dann läuft es aber unverschlüsselt, also mindestens ein starkes
   pro Slot Menge und Wochentage. Pausieren statt löschen erhält die Historie.
 - **Vorrat** – pro Supplement Bestand, Tagesverbrauch, Reichweite in Tagen und
   das Datum „leer am“. Packungen anlegen, Bestand korrigieren, Preise erfassen.
+- **Gewicht** – Waage fotografieren, Rahmen über die Zahl ziehen, Wert prüfen
+  und speichern. Darunter Kurve mit 7-Tage-Mittel und die Liste der Einträge.
+  Der Rahmen ist der wichtigste Hebel: je enger er um die Zahl liegt, desto
+  zuverlässiger wird gelesen. Seine Position bleibt gespeichert, einmal richtig
+  ziehen genügt also meist. Der erkannte Wert steht vor dem Speichern immer in
+  einem Feld mit Plus und Minus in 0,1er-Schritten, eine Fehlerkennung landet
+  also nie ungeprüft in der Datenbank. Ein Eintrag je Tag, erneutes Speichern
+  überschreibt ihn.
 - **Verlauf** – Quote der letzten 14–90 Tage als Heatmap und Tabelle.
 - **Einstellungen** – Zeit-Slots, Erinnerungsintervall, Ruhezeiten,
   Codewörter, Warnschwelle für den Vorrat, Testnachricht.
@@ -141,6 +155,16 @@ cp .env.example .env
 
 Ohne `SUPBOT_PASSWORD` läuft die Oberfläche ohne Login, ohne
 `SUPBOT_TELEGRAM_TOKEN` startet der Bot nicht – für lokale Tests praktisch.
+
+Für die Fotoerkennung braucht es Tesseract. Unter Windows:
+
+```powershell
+winget install --id UB-Mannheim.TesseractOCR
+```
+
+Der Standardpfad `C:\Program Files\Tesseract-OCR\tesseract.exe` wird
+automatisch gefunden. Fehlt Tesseract, bleibt die Seite nutzbar, das Gewicht
+wird dann nur eingetippt.
 
 ## 7. Updates über Git
 
@@ -197,7 +221,8 @@ systemctl restart supbot         # Neustart nach .env-Änderung
 journalctl -u supbot -f          # Logs
 ```
 
-**Backup:** es genügt `/opt/supbot/data/supbot.db`.
+**Backup:** es genügt `/opt/supbot/data/supbot.db`. Die Waagen-Fotos liegen
+daneben in `data/images/` und lassen sich verlustfrei wegwerfen.
 
 ```bash
 sqlite3 /opt/supbot/data/supbot.db ".backup '/root/supbot-$(date +%F).db'"
@@ -213,6 +238,8 @@ app/
   config.py      .env-Auswertung und Einstellungen
   db.py          SQLite-Schema, Verbindung, Settings-Tabelle
   services.py    Tagesplan, Abhaken, Vorrat, Reichweite, Verlauf
+  weight.py      Tagesgewicht speichern, Statistik, Fotos aufräumen
+  ocr.py         Waagen-Foto zuschneiden, aufbereiten, Zahl lesen
   telegram.py    Bot: Polling, Erinnerungsschleife, Befehle, Buttons
   main.py        FastAPI-Routen, Login, Task-Start
   templates/     Jinja2-Seiten

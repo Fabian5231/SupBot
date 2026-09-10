@@ -4,19 +4,27 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import hmac
+import json
 import logging
 import secrets
 import time as time_module
+import uuid
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-from fastapi import FastAPI, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import (
+    FileResponse,
+    HTMLResponse,
+    JSONResponse,
+    RedirectResponse,
+    Response,
+)
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import config, db, services, telegram
+from . import config, db, ocr, services, telegram, weight
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)-7s %(name)s: %(message)s"
@@ -67,6 +75,10 @@ def logged_in(request: Request) -> bool:
 async def lifespan(app: FastAPI):
     db.init_db()
     services.ensure_day(db.today())
+    config.IMAGE_DIR.mkdir(parents=True, exist_ok=True)
+    weight.cleanup_orphan_images()
+    if not config.TESSERACT_CMD:
+        log.warning("Tesseract nicht gefunden – Gewicht nur manuell erfassbar")
     tasks = []
     if telegram.enabled():
         tasks = [
@@ -477,6 +489,130 @@ async def slot_delete(slot_id: int):
 async def telegram_test():
     ok = await telegram.send_test_message()
     return RedirectResponse(f"/einstellungen?sent={'ok' if ok else 'fail'}", status_code=303)
+
+
+# --------------------------------------------------------------------------
+# Gewicht
+# --------------------------------------------------------------------------
+MAX_UPLOAD_BYTES = 12 * 1024 * 1024
+
+
+@app.get("/gewicht", response_class=HTMLResponse)
+async def weight_page(request: Request):
+    return render(
+        request,
+        "weight.html",
+        nav="weight",
+        tesseract=bool(config.TESSERACT_CMD),
+        min_kg=config.WEIGHT_MIN_KG,
+        max_kg=config.WEIGHT_MAX_KG,
+    )
+
+
+@app.get("/api/gewicht")
+async def api_weight_data():
+    rows = weight.list_all()
+    return {"measurements": rows, "stats": weight.stats(rows)}
+
+
+@app.post("/api/gewicht/ocr")
+async def api_weight_ocr(image: UploadFile = File(...), crop: str = Form("")):
+    data = await image.read()
+    if not data:
+        raise HTTPException(status_code=400, detail="Leeres Bild")
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="Bild ist zu gross")
+
+    box = None
+    if crop:
+        try:
+            parsed = json.loads(crop)
+            box = {k: float(parsed[k]) for k in ("x", "y", "w", "h")}
+        except (ValueError, TypeError, KeyError):
+            box = None
+
+    last = weight.latest()
+    hint = float(last["weight_kg"]) if last else None
+
+    try:
+        # Tesseract braucht Sekunden – im Thread, damit die Bot-Tasks weiterlaufen.
+        result = await asyncio.to_thread(ocr.read_weight, data, box, hint)
+    except ocr.TesseractMissing as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:  # defektes Bild, unbekanntes Format
+        raise HTTPException(status_code=400, detail=f"Bild nicht lesbar: {exc}") from exc
+
+    payload = result.as_dict()
+    payload["hint"] = hint
+    payload["image_token"] = None
+
+    if config.KEEP_IMAGES:
+        config.IMAGE_DIR.mkdir(parents=True, exist_ok=True)
+        token = f"{uuid.uuid4().hex}.jpg"
+        try:
+            ocr.load_image(data).save(config.IMAGE_DIR / token, "JPEG", quality=85)
+            payload["image_token"] = token
+        except OSError:
+            log.warning("Foto konnte nicht gespeichert werden", exc_info=True)
+
+    return JSONResponse(payload)
+
+
+@app.post("/api/gewicht")
+async def api_weight_save(request: Request):
+    payload = await request.json()
+    try:
+        day = weight.valid_day(str(payload.get("day") or "").strip())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    try:
+        kilos = float(str(payload.get("weight_kg")).replace(",", "."))
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail="Gewicht fehlt") from exc
+    if not config.WEIGHT_MIN_KG <= kilos <= config.WEIGHT_MAX_KG:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Gewicht muss zwischen {config.WEIGHT_MIN_KG:g} und "
+            f"{config.WEIGHT_MAX_KG:g} kg liegen",
+        )
+
+    token = payload.get("image_token") or None
+    if token and not weight.IMAGE_NAME_RE.match(str(token)):
+        raise HTTPException(status_code=400, detail="Ungueltiges Bild-Token")
+
+    source = payload.get("source")
+    row = weight.save(
+        day,
+        kilos,
+        source=source if source in {"ocr", "manual"} else "manual",
+        ocr_raw=payload.get("ocr_raw"),
+        ocr_confidence=payload.get("ocr_confidence"),
+        image_path=token,
+    )
+    rows = weight.list_all()
+    return {"measurement": row, "stats": weight.stats(rows)}
+
+
+@app.delete("/api/gewicht/{day}")
+async def api_weight_delete(day: str):
+    try:
+        day = weight.valid_day(day)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not weight.delete_day(day):
+        raise HTTPException(status_code=404, detail="Kein Eintrag an diesem Tag")
+    return {"deleted": day}
+
+
+@app.get("/api/gewicht/bild/{token}")
+async def api_weight_image(token: str):
+    if not weight.IMAGE_NAME_RE.match(token):
+        raise HTTPException(status_code=400, detail="Ungueltiges Token")
+    path = config.IMAGE_DIR / token
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="Bild nicht gefunden")
+    return FileResponse(path, media_type="image/jpeg")
 
 
 def run() -> None:
