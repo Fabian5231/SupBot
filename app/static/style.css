@@ -446,6 +446,15 @@ tr.faded { opacity: .5; }
 .weight-trend .up { color: var(--danger); }
 .weight-trend .down { color: var(--accent); }
 
+.weight-mini { display: flex; align-items: center; justify-content: space-between; gap: 1rem; text-decoration: none; color: inherit; }
+.weight-mini:hover { background: var(--hover); }
+.weight-mini .weight-mini-value { font-size: 1.6rem; font-weight: 700; letter-spacing: -.02em; }
+.weight-mini .weight-mini-value small { font-size: .9rem; font-weight: 500; color: var(--muted); margin-left: .25rem; }
+.weight-mini .weight-mini-trend { font-size: .95rem; font-weight: 600; text-align: right; }
+.weight-mini .weight-mini-trend .up { color: var(--danger); }
+.weight-mini .weight-mini-trend .down { color: var(--accent); }
+.weight-mini.empty { justify-content: space-between; text-align: left; }
+
 .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; margin-top: 1rem; }
 .tile {
   background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px;

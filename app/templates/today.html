@@ -22,6 +22,26 @@
   </div>
 </section>
 
+{% if weight_summary %}
+<a class="card weight-mini" href="/gewicht">
+  <div>
+    <div class="weight-mini-value">{{ weight_summary.latest|de_weight }}<small>kg</small></div>
+    <span class="muted small">{{ weight_summary.latest_day|de_short }}</span>
+  </div>
+  {% if weight_summary.delta7 is not none %}
+  <div class="weight-mini-trend">
+    <span class="{{ 'up' if weight_summary.delta7 > 0 else 'down' if weight_summary.delta7 < 0 }}">{{ weight_summary.delta7|de_delta }} kg</span>
+    <div class="muted small">7 Tage</div>
+  </div>
+  {% endif %}
+</a>
+{% else %}
+<a class="card empty weight-mini" href="/gewicht">
+  <span class="muted">Noch kein Gewicht erfasst</span>
+  <span class="btn small">Eintragen</span>
+</a>
+{% endif %}
+
 {% if low %}
 <div class="alert">
   <strong>🛒 Nachbestellen:</strong>

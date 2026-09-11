@@ -142,6 +142,13 @@ def _de_iso(value: str | None) -> str:
 
 
 templates.env.filters["de_iso"] = _de_iso
+templates.env.filters["de_weight"] = (
+    lambda v: "–" if v is None else f"{v:.1f}".replace(".", ",")
+)
+templates.env.filters["de_delta"] = (
+    lambda v: "–" if v is None
+    else f"{'+' if v > 0 else ''}{v:.1f}".replace(".", ",")
+)
 templates.env.globals["units"] = UNITS
 templates.env.globals["weekday_options"] = WEEKDAYS
 
@@ -193,6 +200,16 @@ async def today_page(request: Request, day: str | None = None):
     except ValueError:
         current = db.today()
     plan = services.day_plan(current)
+    w_stats = weight.stats(weight.list_all())
+    weight_summary = (
+        {
+            "latest": w_stats["latest"],
+            "latest_day": date.fromisoformat(w_stats["latest_day"]),
+            "delta7": w_stats.get("delta7"),
+        }
+        if w_stats.get("count")
+        else None
+    )
     return render(
         request,
         "today.html",
@@ -205,6 +222,7 @@ async def today_page(request: Request, day: str | None = None):
         stats=services.day_stats(current),
         streak=services.streak(),
         low=services.low_stock(db.get_int_setting("low_stock_days", 10)),
+        weight_summary=weight_summary,
     )
 
 
