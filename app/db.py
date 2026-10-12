@@ -77,6 +77,7 @@ CREATE TABLE IF NOT EXISTS reminders (
     sent_count    INTEGER NOT NULL DEFAULT 0,
     last_sent     TEXT,
     snooze_until  TEXT,
+    message_id    INTEGER,                                    -- letzte Telegram-Erinnerung
     PRIMARY KEY (day, slot_id)
 );
 
@@ -100,6 +101,12 @@ CREATE TABLE IF NOT EXISTS measurements (
 );
 CREATE INDEX IF NOT EXISTS idx_measurements_day ON measurements(day DESC);
 """
+
+# Spalten, die nach der ersten Version dazugekommen sind: (Tabelle, Spalte, Typ)
+MIGRATIONS = [
+    ("intakes", "booked", "REAL"),
+    ("reminders", "message_id", "INTEGER"),
+]
 
 DEFAULT_SETTINGS = {
     "reminder_interval_min": "30",   # Abstand zwischen den Nervnachrichten
@@ -150,9 +157,10 @@ def init_db() -> None:
     conn = connect()
     with _write_lock:
         conn.executescript(SCHEMA)
-        columns = {row["name"] for row in conn.execute("PRAGMA table_info(intakes)")}
-        if "booked" not in columns:
-            conn.execute("ALTER TABLE intakes ADD COLUMN booked REAL")
+        for table, column, ddl in MIGRATIONS:
+            columns = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
+            if column not in columns:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}")
         for key, value in DEFAULT_SETTINGS.items():
             conn.execute(
                 "INSERT OR IGNORE INTO settings(key, value) VALUES (?, ?)", (key, value)

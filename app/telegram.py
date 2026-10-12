@@ -20,6 +20,7 @@ log = logging.getLogger("supbot.telegram")
 API = "https://api.telegram.org/bot{token}/{method}"
 POLL_TIMEOUT = 30
 CHECK_INTERVAL = 30  # Sekunden zwischen zwei Reminder-Pruefungen
+SNOOZE_MIN = 30      # "Später" in der Erinnerung
 
 HELP = (
     "<b>SupBot</b>\n\n"
@@ -75,13 +76,19 @@ class Telegram:
     async def answer_callback(self, callback_id: str, text: str = ""):
         return await self.call("answerCallbackQuery", callback_query_id=callback_id, text=text)
 
-    async def edit_markup(self, chat_id, message_id: int, keyboard: list | None = None):
+    async def edit_text(self, chat_id, message_id: int, text: str, keyboard: list | None = None):
         return await self.call(
-            "editMessageReplyMarkup",
+            "editMessageText",
             chat_id=chat_id,
             message_id=message_id,
+            text=text,
+            parse_mode="HTML",
+            disable_web_page_preview=True,
             reply_markup={"inline_keyboard": keyboard or []},
         )
+
+    async def delete(self, chat_id, message_id: int):
+        return await self.call("deleteMessage", chat_id=chat_id, message_id=message_id)
 
     async def aclose(self) -> None:
         await self.client.aclose()
@@ -124,25 +131,55 @@ def slot_message(slot: dict, nag: int = 0) -> str:
     return "\n".join(lines)
 
 
-def slot_keyboard(slot_id: int, items: list[dict]) -> list:
-    rows = [
-        [
-            {"text": "✅ Genommen", "callback_data": f"slot:{slot_id}"},
-            {"text": "😴 30 Min", "callback_data": f"snooze:{slot_id}:30"},
-        ]
-    ]
-    open_items = [i for i in items if not i["taken"]]
-    if len(open_items) > 1:
-        for item in open_items:
-            rows.append(
-                [
-                    {
-                        "text": f"✔ nur {item['supplement_name']}",
-                        "callback_data": f"item:{item['id']}",
-                    }
-                ]
-            )
-    return rows
+def slot_keyboard(slot_id: int, day: date, snoozed: bool = False) -> list:
+    """Nur zwei Knoepfe: alles abhaken oder spaeter erinnern."""
+    done = {"text": "✅ Alle genommen", "callback_data": f"slot:{slot_id}:{day.isoformat()}"}
+    if snoozed:
+        return [[done]]
+    later = {"text": f"⏰ Später ({SNOOZE_MIN} Min)", "callback_data": f"snooze:{slot_id}:{SNOOZE_MIN}"}
+    return [[done, later]]
+
+
+def done_message(slot: dict) -> str:
+    """Text, durch den eine erledigte Erinnerung ersetzt wird."""
+    times = [i["taken_at"][11:16] for i in slot["items"] if i["taken_at"]]
+    when = f" · {max(times)} Uhr" if times else ""
+    names = ", ".join(i["supplement_name"] for i in slot["items"])
+    return f"✅ <b>{esc(slot['name'])}</b> erledigt{when}\n<i>{esc(names)}</i>"
+
+
+def find_slot(day: date, slot_id: int) -> dict | None:
+    return next((s for s in services.day_plan(day) if s["slot_id"] == slot_id), None)
+
+
+async def close_reminder(chat: str, day: date, slot_id: int, message_id: int | None = None) -> None:
+    """Ersetzt die Erinnerung(en) eines erledigten Slots durch 'erledigt'."""
+    slot = find_slot(day, slot_id)
+    if slot is None or not slot["complete"]:
+        return
+    state = db.one(
+        "SELECT message_id FROM reminders WHERE day = ? AND slot_id = ?",
+        (day.isoformat(), slot_id),
+    )
+    ids = {message_id, state["message_id"] if state else None} - {None}
+    for mid in ids:
+        await bot.edit_text(chat, mid, done_message(slot))
+    db.execute(
+        "UPDATE reminders SET message_id = NULL WHERE day = ? AND slot_id = ?",
+        (day.isoformat(), slot_id),
+    )
+
+
+async def close_finished_reminders(chat: str, now: datetime) -> None:
+    """Raeumt offene Erinnerungen auf, deren Slot inzwischen erledigt ist
+    (per Codewort, Button oder Weboberflaeche)."""
+    since = (now.date() - timedelta(days=1)).isoformat()
+    rows = db.query(
+        "SELECT day, slot_id FROM reminders WHERE message_id IS NOT NULL AND day >= ?",
+        (since,),
+    )
+    for row in rows:
+        await close_reminder(chat, date.fromisoformat(row["day"]), row["slot_id"])
 
 
 def today_text(day: date | None = None) -> str:
@@ -239,6 +276,7 @@ async def handle_message(message: dict) -> None:
 
 async def confirm_taken(chat: str, now: datetime) -> None:
     done = services.complete_all_due(now, source="telegram")
+    await close_finished_reminders(chat, now)
     if not done:
         stats = services.day_stats(now.date())
         if stats["total"] and stats["open"] == 0:
@@ -268,31 +306,35 @@ async def handle_callback(callback: dict) -> None:
     now = db.now()
     parts = data.split(":")
 
-    if parts[0] == "slot" and len(parts) == 2:
-        names = services.complete_slot(now.date(), int(parts[1]), "telegram")
+    if parts[0] == "slot" and len(parts) in (2, 3):
+        # Der Tag steckt im Button, damit eine Erinnerung von gestern nicht heute abhakt
+        try:
+            day = date.fromisoformat(parts[2]) if len(parts) == 3 else now.date()
+        except ValueError:
+            day = now.date()
+        slot_id = int(parts[1])
+        services.complete_slot(day, slot_id, "telegram")
         await bot.answer_callback(callback["id"], "Abgehakt ✅")
-        if message_id:
-            await bot.edit_markup(chat, message_id, [])
-        text = ", ".join(names) if names else "war schon erledigt"
-        await bot.send(chat, f"✅ {esc(text)}")
+        await close_reminder(chat, day, slot_id, message_id)
     elif parts[0] == "item" and len(parts) == 2:
+        # Nur noch fuer aeltere Nachrichten, die Einzel-Buttons hatten
         services.set_intake(int(parts[1]), True, "telegram")
         await bot.answer_callback(callback["id"], "Abgehakt ✅")
-        slot_id = None
-        row = db.one("SELECT slot_id FROM intakes WHERE id = ?", (int(parts[1]),))
-        if row:
-            slot_id = row["slot_id"]
-        if message_id and slot_id is not None:
-            plan = {s["slot_id"]: s for s in services.day_plan(now.date())}
-            slot = plan.get(slot_id)
-            if slot and not slot["complete"]:
-                await bot.edit_markup(chat, message_id, slot_keyboard(slot_id, slot["items"]))
-            else:
-                await bot.edit_markup(chat, message_id, [])
+        row = db.one("SELECT day, slot_id FROM intakes WHERE id = ?", (int(parts[1]),))
+        if message_id and row:
+            day = date.fromisoformat(row["day"])
+            slot = find_slot(day, row["slot_id"])
+            if slot and slot["complete"]:
+                await close_reminder(chat, day, row["slot_id"], message_id)
     elif parts[0] == "snooze" and len(parts) == 3:
-        minutes = int(parts[2])
-        snooze_slot(now, int(parts[1]), minutes)
+        slot_id, minutes = int(parts[1]), int(parts[2])
+        snooze_slot(now, slot_id, minutes)
         await bot.answer_callback(callback["id"], f"{minutes} Minuten Ruhe 😴")
+        slot = find_slot(now.date(), slot_id)
+        if message_id and slot and not slot["complete"]:
+            until = (now + timedelta(minutes=minutes)).strftime("%H:%M")
+            text = slot_message(slot) + f"\n\n😴 <i>Ich erinnere dich um {until} Uhr.</i>"
+            await bot.edit_text(chat, message_id, text, slot_keyboard(slot_id, now.date(), snoozed=True))
     else:
         await bot.answer_callback(callback["id"])
 
@@ -386,6 +428,8 @@ async def check_reminders() -> None:
     max_reminders = db.get_int_setting("max_reminders", 24)
     day_s = now.date().isoformat()
 
+    await close_finished_reminders(chat, now)
+
     for slot in services.due_slots(now):
         state = db.one(
             "SELECT * FROM reminders WHERE day = ? AND slot_id = ?", (day_s, slot["slot_id"])
@@ -406,18 +450,28 @@ async def check_reminders() -> None:
             if last and (now - last) < timedelta(minutes=interval):
                 continue
 
-        await bot.send(
+        message = await bot.send(
             chat,
             slot_message(slot, nag=sent),
-            slot_keyboard(slot["slot_id"], slot["items"]),
+            slot_keyboard(slot["slot_id"], now.date()),
         )
+        # Neue Nachricht, damit das Handy wieder klingelt; die vorige verschwindet,
+        # damit im Chat immer nur eine offene Erinnerung pro Slot steht.
+        if message and state and state["message_id"]:
+            await bot.delete(chat, state["message_id"])
         db.execute(
-            "INSERT INTO reminders (day, slot_id, sent_count, last_sent, snooze_until) "
-            "VALUES (?, ?, 1, ?, NULL) "
+            "INSERT INTO reminders (day, slot_id, sent_count, last_sent, snooze_until, message_id) "
+            "VALUES (?, ?, 1, ?, NULL, ?) "
             "ON CONFLICT(day, slot_id) DO UPDATE SET "
             "  sent_count = reminders.sent_count + 1, last_sent = excluded.last_sent, "
-            "  snooze_until = NULL",
-            (day_s, slot["slot_id"], now.isoformat(timespec="seconds")),
+            "  snooze_until = NULL, "
+            "  message_id = COALESCE(excluded.message_id, reminders.message_id)",
+            (
+                day_s,
+                slot["slot_id"],
+                now.isoformat(timespec="seconds"),
+                message["message_id"] if message else None,
+            ),
         )
 
     await check_low_stock(chat, now)

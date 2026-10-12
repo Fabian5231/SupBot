@@ -123,8 +123,11 @@ freigeben – dann läuft es aber unverschlüsselt, also mindestens ein starkes
 | `/snooze` | 30 Minuten Ruhe |
 | `/hilfe` | Übersicht |
 
-Jede Erinnerung hat außerdem Buttons: **✅ Genommen**, **😴 30 Min** und – bei
-mehreren Supplementen im Slot – einen Knopf je Eintrag.
+Jede Erinnerung hat zwei Buttons: **✅ Alle genommen** und **⏰ Später (30 Min)**.
+Einzelne Supplemente hakst du in der Weboberfläche ab. Im Chat steht pro Slot
+immer nur eine offene Erinnerung: eine Wiederholung ersetzt die vorige, und ist
+der Slot erledigt (Button, Codewort oder Web), wird die Nachricht zu
+„✅ Morgens erledigt · 08:03 Uhr“.
 
 **So funktioniert das Nachhaken:** Zur Slot-Zeit kommt die erste Nachricht.
 Solange noch etwas offen ist, wiederholt der Bot sie alle `X` Minuten
