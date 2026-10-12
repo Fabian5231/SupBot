@@ -167,17 +167,21 @@ def set_intake(intake_id: int, taken: bool, source: str = "web") -> sqlite3.Row 
     if row is None or bool(row["taken"]) == taken:
         return row
     if taken:
+        stamp = db.now().isoformat(timespec="seconds")
+        missing = consume_stock(row["supplement_id"], row["amount"], stamp)
         db.execute(
-            "UPDATE intakes SET taken = 1, taken_at = ?, source = ? WHERE id = ?",
-            (db.now().isoformat(timespec="seconds"), source, intake_id),
+            "UPDATE intakes SET taken = 1, taken_at = ?, source = ?, booked = ? WHERE id = ?",
+            (stamp, source, round(row["amount"] - missing, 4), intake_id),
         )
-        consume_stock(row["supplement_id"], row["amount"])
     else:
         db.execute(
-            "UPDATE intakes SET taken = 0, taken_at = NULL, source = NULL WHERE id = ?",
+            "UPDATE intakes SET taken = 0, taken_at = NULL, source = NULL, booked = NULL "
+            "WHERE id = ?",
             (intake_id,),
         )
-        restore_stock(row["supplement_id"], row["amount"])
+        # Nur zurueckgeben, was beim Abhaken wirklich abgebucht wurde
+        booked = row["booked"] if row["booked"] is not None else row["amount"]
+        restore_stock(row["supplement_id"], booked, row["taken_at"])
     return db.one("SELECT * FROM intakes WHERE id = ?", (intake_id,))
 
 
@@ -209,8 +213,11 @@ def complete_all_due(now: datetime, source: str = "telegram") -> list[tuple[str,
 # --------------------------------------------------------------------------
 # Vorrat
 # --------------------------------------------------------------------------
-def consume_stock(supplement_id: int, amount: float) -> float:
-    """Bucht die Menge von den Packungen ab. Rueckgabe: ungedeckter Rest."""
+def consume_stock(supplement_id: int, amount: float, stamp: str | None = None) -> float:
+    """Bucht die Menge von den Packungen ab. Rueckgabe: ungedeckter Rest.
+
+    stamp wird als opened_at neu angebrochener Packungen gesetzt (= taken_at der Einnahme).
+    """
     remaining = float(amount)
     rows = db.query(
         """
@@ -221,7 +228,7 @@ def consume_stock(supplement_id: int, amount: float) -> float:
         """,
         (supplement_id,),
     )
-    stamp = db.now().isoformat(timespec="seconds")
+    stamp = stamp or db.now().isoformat(timespec="seconds")
     for pkg in rows:
         if remaining <= 0:
             break
@@ -236,8 +243,12 @@ def consume_stock(supplement_id: int, amount: float) -> float:
     return round(remaining, 4)
 
 
-def restore_stock(supplement_id: int, amount: float) -> None:
-    """Macht consume_stock rueckgaengig (zuletzt angebrochene Packung zuerst)."""
+def restore_stock(supplement_id: int, amount: float, taken_at: str | None = None) -> None:
+    """Macht consume_stock rueckgaengig (zuletzt angebrochene Packung zuerst).
+
+    Eine Packung, die erst durch diese Einnahme (opened_at == taken_at) angebrochen wurde,
+    gilt wieder als ungeoeffnet. Vorher schon angebrochene Packungen bleiben angebrochen.
+    """
     remaining = float(amount)
     rows = db.query(
         """
@@ -256,9 +267,16 @@ def restore_stock(supplement_id: int, amount: float) -> None:
         if give <= 0:
             continue
         left = round(pkg["units_left"] + give, 4)
+        opened_at = pkg["opened_at"]
+        if left < pkg["units_total"]:
+            status = "open"
+        elif opened_at and opened_at != taken_at:
+            status = "open"
+        else:
+            status, opened_at = "sealed", None
         db.execute(
-            "UPDATE packages SET units_left = ?, status = ? WHERE id = ?",
-            (left, "open" if left < pkg["units_total"] else "sealed", pkg["id"]),
+            "UPDATE packages SET units_left = ?, status = ?, opened_at = ? WHERE id = ?",
+            (left, status, opened_at, pkg["id"]),
         )
         remaining -= give
 
