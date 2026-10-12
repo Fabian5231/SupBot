@@ -29,6 +29,8 @@ from . import config, db, ocr, services, telegram, weight
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)-7s %(name)s: %(message)s"
 )
+# httpx loggt jede Request-URL – bei Telegram steht dort der Bot-Token drin
+logging.getLogger("httpx").setLevel(logging.WARNING)
 log = logging.getLogger("supbot")
 
 BASE = Path(__file__).resolve().parent
