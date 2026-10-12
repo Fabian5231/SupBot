@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS intakes (
     taken         INTEGER NOT NULL DEFAULT 0,
     taken_at      TEXT,
     source        TEXT,                                       -- web | telegram
+    booked        REAL,                                       -- tatsaechlich vom Vorrat abgebucht
     UNIQUE (day, slot_id, supplement_id)
 );
 CREATE INDEX IF NOT EXISTS idx_intakes_day ON intakes(day);
@@ -149,6 +150,9 @@ def init_db() -> None:
     conn = connect()
     with _write_lock:
         conn.executescript(SCHEMA)
+        columns = {row["name"] for row in conn.execute("PRAGMA table_info(intakes)")}
+        if "booked" not in columns:
+            conn.execute("ALTER TABLE intakes ADD COLUMN booked REAL")
         for key, value in DEFAULT_SETTINGS.items():
             conn.execute(
                 "INSERT OR IGNORE INTO settings(key, value) VALUES (?, ?)", (key, value)
