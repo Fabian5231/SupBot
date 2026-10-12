@@ -6,7 +6,7 @@
 <p class="muted">
   Reichweite = offener Bestand ÷ Tagesverbrauch aus dem Plan. Jedes Abhaken bucht
   automatisch von der angebrochenen Packung ab.
-  {% if total_value %}<br>Wert des aktuellen Bestands (Kaufpreise): <strong>{{ "%.2f"|format(total_value) }} €</strong>{% endif %}
+  {% if total_value %}<br>Wert des aktuellen Bestands (Kaufpreise): <strong>{{ total_value|euro }}</strong>{% endif %}
 </p>
 
 {% if not overview %}
@@ -54,27 +54,27 @@
     <tbody>
     {% for pkg in entry.packages %}
       <tr class="{{ 'faded' if pkg.status == 'empty' }}">
-        <td>
+        <td class="pkg">
           {{ pkg.label or "Packung" }}
           <div class="muted small">
             {{ pkg.units_total|amount }} {{ sup.unit }}
-            {% if pkg.bought_at %} · gekauft {{ pkg.bought_at }}{% endif %}
-            {% if pkg.opened_at %} · offen seit {{ pkg.opened_at[:10] }}{% endif %}
+            {% if pkg.bought_at %} · gekauft {{ pkg.bought_at|de_iso }}{% endif %}
+            {% if pkg.opened_at %} · offen seit {{ pkg.opened_at|de_iso }}{% endif %}
           </div>
         </td>
-        <td>
+        <td class="stock-cell">
           <form method="post" action="/vorrat/packung/{{ pkg.id }}/korrigieren" class="inline-form">
             <input type="text" inputmode="decimal" name="units_left" size="4" value="{{ pkg.units_left|amount }}">
             <button class="btn ghost small" title="Bestand korrigieren">✓</button>
           </form>
         </td>
-        <td>{{ ("%.2f €"|format(pkg.price)) if pkg.price else "–" }}</td>
-        <td>
+        <td class="price">{{ pkg.price|euro if pkg.price else "–" }}</td>
+        <td class="status">
           {% if pkg.status == 'open' %}<span class="pill open">angebrochen</span>
           {% elif pkg.status == 'sealed' %}<span class="pill">ungeöffnet</span>
           {% else %}<span class="pill empty">leer</span>{% endif %}
         </td>
-        <td>
+        <td class="del">
           <form method="post" action="/vorrat/packung/{{ pkg.id }}/loeschen"
                 onsubmit="return confirm('Packung löschen?')">
             <button class="btn danger small">×</button>

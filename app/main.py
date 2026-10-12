@@ -128,6 +128,20 @@ templates.env.filters["amount"] = services.fmt_amount
 templates.env.filters["weekdays"] = services.weekdays_label
 templates.env.filters["de_date"] = lambda d: d.strftime("%d.%m.%Y") if d else "–"
 templates.env.filters["de_short"] = lambda d: d.strftime("%d.%m.") if d else "–"
+templates.env.filters["euro"] = (
+    lambda v: f"{v:,.2f}".replace(",", "_").replace(".", ",").replace("_", ".") + " €"
+)
+
+
+def _de_iso(value: str | None) -> str:
+    """'2026-09-01' bzw. '2026-09-01T08:00:00' -> '01.09.2026'"""
+    try:
+        return date.fromisoformat((value or "")[:10]).strftime("%d.%m.%Y")
+    except ValueError:
+        return value or "–"
+
+
+templates.env.filters["de_iso"] = _de_iso
 templates.env.globals["units"] = UNITS
 templates.env.globals["weekday_options"] = WEEKDAYS
 

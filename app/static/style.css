@@ -12,6 +12,7 @@
   --radius: 14px;
   --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 8px 24px -16px rgba(0, 0, 0, .8);
   --hover: rgba(255, 255, 255, .04);
+  color-scheme: dark;
 }
 
 @media (prefers-color-scheme: light) {
@@ -24,12 +25,16 @@
     --muted: #6b7280;
     --accent: #16a34a;
     --accent-dim: #15803d;
+    --warn: #d97706;
     --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 10px 30px -20px rgba(16, 24, 40, .45);
     --hover: rgba(16, 24, 40, .035);
+    color-scheme: light;
   }
 }
 
 * { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+a, button, label, input, select, summary { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 
 body {
   margin: 0;
@@ -73,6 +78,13 @@ code { background: var(--surface-2); padding: .1em .4em; border-radius: 5px; fon
 }
 .topbar nav a:hover { background: var(--surface-2); color: var(--text); }
 .topbar nav a.active { background: var(--surface-2); color: var(--text); font-weight: 600; }
+
+.icon {
+  width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8;
+  stroke-linecap: round; stroke-linejoin: round; display: block;
+}
+/* Nur auf dem Handy: Einstellungs-Icon oben, Tab-Leiste unten */
+.topbar-settings, .tabbar { display: none; }
 
 /* ---------- Karten ---------- */
 .card {
@@ -311,15 +323,110 @@ tr.faded { opacity: .5; }
 .login { max-width: 380px; margin: 15vh auto 0; }
 
 @media (max-width: 560px) {
-  .grid-2 { grid-template-columns: 1fr; }
-  .slot-row .days { margin-left: 0; }
-  .stock-head { flex-direction: column; }
-  .stock-numbers { text-align: left; }
+  body { padding-bottom: calc(4.75rem + env(safe-area-inset-bottom)); }
   main { padding: .75rem .75rem 0; }
+  h1 { font-size: 1.35rem; }
+
+  /* Navigation: oben nur Marke + Einstellungen, unten feste Tab-Leiste */
+  .topbar {
+    justify-content: space-between; overflow: visible;
+    padding: calc(.55rem + env(safe-area-inset-top)) .9rem .55rem;
+  }
+  .topnav { display: none !important; }
+  .topbar-settings {
+    display: grid; place-items: center; width: 38px; height: 38px; margin: -.3rem -.4rem -.3rem 0;
+    border-radius: 10px; color: var(--muted);
+  }
+  .topbar-settings.active { color: var(--accent); background: var(--surface-2); }
+  .tabbar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 15;
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    background: color-mix(in srgb, var(--surface) 94%, transparent);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border-top: 1px solid var(--line);
+    padding: .3rem .25rem calc(.3rem + env(safe-area-inset-bottom));
+  }
+  .tabbar a {
+    display: flex; flex-direction: column; align-items: center; gap: .15rem;
+    padding: .35rem 0 .25rem; border-radius: 10px; min-width: 0;
+    color: var(--muted); text-decoration: none; font-size: .66rem; font-weight: 500;
+  }
+  .tabbar a span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tabbar a.active { color: var(--accent); }
+  .tabbar a.active .icon { stroke-width: 2.2; }
+
+  /* iOS zoomt bei Eingabefeldern unter 16px ins Formular */
+  input, select { font-size: 16px; }
+
+  .grid-2 { grid-template-columns: 1fr; }
+  .actions { flex-wrap: wrap; }
+  .actions > .btn { flex: 1 1 auto; text-align: center; }
+  .btn.icon { width: 38px; height: 38px; }
+  .btn.small { padding: .4rem .7rem; }
+
+  /* Heute */
+  .hero { padding: .85rem; }
+  .check { padding: .7rem .5rem; }
+  .check .box { width: 26px; height: 26px; }
+
+  /* Supplement-Formular: Wochentage als gleich breite, gut treffbare Felder */
+  .slot-row { gap: .6rem; }
+  .slot-row .switch { flex: 1 1 auto; }
+  .slot-row label.inline input { width: 4.5rem; }
+  .slot-row .days {
+    margin-left: 0; width: 100%;
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: .25rem;
+  }
+  .day span { text-align: center; padding: .45rem 0; font-size: .8rem; }
+  .switch input { width: 22px; height: 22px; }
+
+  /* Einstellungen: Slot-Zeilen als Raster – Name + Uhrzeit, darunter Aktionen */
+  .list-row.inline-form {
+    display: grid; grid-template-columns: 1fr 6.5rem 38px; gap: .5rem; align-items: center;
+  }
+  .list-row.inline-form > input, .list-row.inline-form > .btn { width: 100%; }
+  .list-row.inline-form input[name="name"] { grid-column: 1; }
+  .list-row.inline-form input[type="time"] { grid-column: 2 / 4; }
+  .list-row.inline-form .switch { grid-column: 1; }
+  /* neuer Slot: Name ueber die volle Breite */
+  .inline-form.spaced > input[name="name"] { flex: 1 1 100%; }
+  .inline-form.spaced > input[type="time"] { flex: 1 1 auto; }
+
+  /* Vorrat: Kennzahlen als Raster, Packungen als Karten statt Tabelle */
+  .stock-head { flex-direction: column; gap: .6rem; }
+  .stock-numbers {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem;
+    text-align: left; width: 100%;
+  }
+  table.packages, table.packages tbody { display: block; }
+  table.packages thead { display: none; }
+  table.packages tr {
+    display: grid; grid-template-columns: 1fr auto auto; align-items: center;
+    column-gap: .6rem; row-gap: .45rem;
+    padding: .7rem 0; border-bottom: 1px solid var(--line);
+  }
+  table.packages tr:last-child { border-bottom: none; }
+  table.packages td { display: block; padding: 0; border: none; }
+  table.packages td.pkg { grid-column: 1 / 3; grid-row: 1; font-weight: 600; }
+  table.packages td.pkg .muted { font-weight: 400; }
+  table.packages td.del { grid-column: 3; grid-row: 1; justify-self: end; align-self: start; }
+  table.packages td.stock-cell { grid-column: 1; grid-row: 2; }
+  table.packages td.price { grid-column: 2; grid-row: 2; white-space: nowrap; color: var(--muted); }
+  table.packages td.status { grid-column: 3; grid-row: 2; justify-self: end; }
+  table.packages .inline-form { flex-wrap: nowrap; }
+  table.packages .inline-form input[name="units_left"] { width: 5.5rem; }
+
   /* Zeile bleibt eine Zeile: auf dem Handy zaehlt der Name, Details im Formular. */
   .line .vendor, .line .plan, .line .note { display: none; }
   .line .name { max-width: 100%; }
   .check .vendor { display: none; }
+}
+
+/* Touch-Geraete: kein haengenbleibender Hover-Hintergrund nach dem Tippen */
+@media (hover: none) {
+  .check:hover, .list-row:hover { background: none; }
+  .btn:hover { background: var(--accent); }
+  .btn.ghost:hover, .btn.danger:hover { background: transparent; }
 }
 
 /* ---------- Gewicht ---------- */
@@ -408,6 +515,7 @@ tr.faded { opacity: .5; }
 }
 
 @media (max-width: 560px) {
+  .toast { bottom: calc(5.25rem + env(safe-area-inset-bottom)); }
   .tiles { grid-template-columns: repeat(2, 1fr); }
   .weight-value { font-size: 2.2rem; }
 }
