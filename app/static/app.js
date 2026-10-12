@@ -66,6 +66,31 @@
       .finally(function () { button.disabled = false; });
   });
 
+  // Pillenbox-Fach: alle Einnahmen des Tages auf einmal
+  document.addEventListener("click", function (event) {
+    var button = event.target.closest("[data-day-done]");
+    if (!button) return;
+    event.preventDefault();
+    button.disabled = true;
+    fetch("/api/day/done?source=nfc&day=" + encodeURIComponent(button.dataset.dayDone), { method: "POST" })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (data) {
+        document.querySelectorAll(".slot").forEach(function (slotEl) {
+          slotEl.querySelectorAll("input[data-intake]").forEach(function (box) {
+            box.checked = true;
+            box.closest(".check").classList.add("checked");
+          });
+          refreshSlot(slotEl);
+        });
+        updateProgress(data.stats);
+        button.closest("[data-day-box]").outerHTML = '<div class="alert ok">✓ Erledigt – gut gemacht!</div>';
+      })
+      .catch(function () {
+        button.disabled = false;
+        alert("Konnte nicht gespeichert werden.");
+      });
+  });
+
   // Plan-Zeile im Supplement-Formular optisch mitschalten
   document.addEventListener("change", function (event) {
     var input = event.target.closest('.slot-row input[type="checkbox"][name^="slot_"]');

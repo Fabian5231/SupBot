@@ -78,6 +78,33 @@
 </section>
 
 <section class="card">
+  <h2>Pillenbox (NFC)</h2>
+  <p class="muted">
+    Ein NFC-Chip (z. B. NTAG213-Sticker) pro Fach. Auf jeden Chip kommt der Link des Fachs –
+    hältst du das Handy daran, öffnet sich SupBot mit dem Inhalt und „Alles genommen“.
+    Das klappt in jedem Browser, ohne App.
+  </p>
+  <p class="muted small" data-nfc-only hidden>
+    Dein Browser kann Chips direkt beschreiben: „Chip beschreiben“ tippen, dann den Chip ans Handy halten.
+  </p>
+  <p class="muted small" data-nfc-missing>
+    Beschreiben geht hier nicht direkt (dafür Chrome auf Android öffnen) – oder Link kopieren und mit
+    einer App wie <em>NFC Tools</em> als URL auf den Chip schreiben.
+  </p>
+  <div class="list">
+    {% for key, name in boxes %}
+    <div class="list-row box-row">
+      <strong class="box-name">{{ name }}</strong>
+      <code data-box-url="/box/{{ key }}">/box/{{ key }}</code>
+      <button class="btn ghost small" type="button" data-copy-box>Kopieren</button>
+      <button class="btn small" type="button" data-nfc-write data-nfc-only hidden>Chip beschreiben</button>
+    </div>
+    {% endfor %}
+  </div>
+  <p class="muted small" data-nfc-status></p>
+</section>
+
+<section class="card">
   <h2>Bot-Befehle</h2>
   <ul class="cmds">
     <li><code>/start</code> – verbindet den Chat (setzt die Chat-ID)</li>
@@ -89,3 +116,5 @@
   <p><a class="btn ghost small" href="/logout">Abmelden</a></p>
 </section>
 {% endblock %}
+
+{% block scripts %}<script src="{{ static_url['nfc.js'] }}"></script>{% endblock %}

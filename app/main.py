@@ -12,6 +12,7 @@ import uuid
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta
 from pathlib import Path
+from urllib.parse import quote
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import (
@@ -116,7 +117,15 @@ async def auth_middleware(request: Request, call_next):
         return await call_next(request)
     if path.startswith("/api/"):
         return JSONResponse({"error": "unauthorized"}, status_code=401)
-    return RedirectResponse("/login", status_code=303)
+    target = "/login" if path == "/" else f"/login?next={quote(path)}"
+    return RedirectResponse(target, status_code=303)
+
+
+def _safe_next(value: str | None) -> str:
+    """Nur relative Pfade dieser Seite als Ziel nach dem Login zulassen."""
+    if value and value.startswith("/") and not value.startswith(("//", "/\\")):
+        return value
+    return "/"
 
 
 def render(request: Request, template: str, **context) -> HTMLResponse:
@@ -174,16 +183,16 @@ templates.env.globals["static_url"] = {
 # Auth-Routen
 # --------------------------------------------------------------------------
 @app.get("/login", response_class=HTMLResponse)
-async def login_form(request: Request):
+async def login_form(request: Request, next: str | None = None):
     if logged_in(request):
-        return RedirectResponse("/", status_code=303)
-    return render(request, "login.html", error=None)
+        return RedirectResponse(_safe_next(next), status_code=303)
+    return render(request, "login.html", error=None, next=_safe_next(next))
 
 
 @app.post("/login")
-async def login(request: Request, password: str = Form("")):
+async def login(request: Request, password: str = Form(""), next: str = Form("/")):
     if not config.WEB_PASSWORD or secrets.compare_digest(password, config.WEB_PASSWORD):
-        response = RedirectResponse("/", status_code=303)
+        response = RedirectResponse(_safe_next(next), status_code=303)
         response.set_cookie(
             config.COOKIE_NAME,
             make_token(),
@@ -192,7 +201,7 @@ async def login(request: Request, password: str = Form("")):
             samesite="lax",
         )
         return response
-    return render(request, "login.html", error="Falsches Passwort.")
+    return render(request, "login.html", error="Falsches Passwort.", next=_safe_next(next))
 
 
 @app.get("/logout")
@@ -262,6 +271,44 @@ async def api_slot_done(slot_id: int, day: str | None = None):
     current = date.fromisoformat(day) if day else db.today()
     services.complete_slot(current, slot_id, "web")
     return {"ok": True, "stats": services.day_stats(current)}
+
+
+@app.post("/api/day/done")
+async def api_day_done(day: str, source: str = "web"):
+    try:
+        current = date.fromisoformat(day)
+    except ValueError:
+        raise HTTPException(400, "Ungültiges Datum")
+    if current > db.today():
+        raise HTTPException(400, "Zukünftige Tage können nicht abgehakt werden")
+    names = services.complete_day(current, "nfc" if source == "nfc" else "web")
+    return {"ok": True, "done": names, "stats": services.day_stats(current)}
+
+
+# --------------------------------------------------------------------------
+# Pillenbox (NFC-Chips an den Faechern)
+# --------------------------------------------------------------------------
+@app.get("/box/{key}", response_class=HTMLResponse)
+async def box_page(request: Request, key: str):
+    key = key.lower()
+    today = db.today()
+    day = services.box_day(key, today)
+    if day is None:
+        raise HTTPException(404, "Unbekanntes Fach")
+    weekday = services.BOX_KEYS.index(key)
+    return render(
+        request,
+        "box.html",
+        nav="today",
+        key=key,
+        box_name=services.WEEKDAY_LONG[weekday],
+        today_name=services.WEEKDAY_LONG[today.isoweekday() - 1],
+        today_key=services.BOX_KEYS[today.isoweekday() - 1],
+        day=day,
+        offset=(day - today).days,
+        plan=services.day_plan(day),
+        stats=services.day_stats(day),
+    )
 
 
 # --------------------------------------------------------------------------
@@ -481,6 +528,7 @@ async def settings_page(request: Request, sent: str | None = None):
         chat_id=telegram.chat_id(),
         sent=sent,
         tz=config.TZ_NAME,
+        boxes=list(zip(services.BOX_KEYS, services.WEEKDAY_LONG)),
     )
 
 

@@ -110,7 +110,24 @@ freigeben – dann läuft es aber unverschlüsselt, also mindestens ein starkes
   überschreibt ihn.
 - **Verlauf** – Quote der letzten 14–90 Tage als Heatmap und Tabelle.
 - **Einstellungen** – Zeit-Slots, Erinnerungsintervall, Ruhezeiten,
-  Codewörter, Warnschwelle für den Vorrat, Testnachricht.
+  Codewörter, Warnschwelle für den Vorrat, Testnachricht, Pillenbox-Chips.
+
+### Pillenbox mit NFC
+
+Für eine Wochen-Pillenbox mit einem Fach pro Tag: auf jedes Fach kommt ein
+NFC-Sticker (NTAG213, klein genug für den Deckel, nicht auf Metall). Auf den
+Chip wird der Link des Fachs geschrieben, z. B. `https://…/box/mi`. Die Links
+stehen unter **Einstellungen → Pillenbox**: in Chrome auf Android dort direkt
+„Chip beschreiben“, sonst kopieren und mit einer App wie *NFC Tools* als URL
+auf den Chip schreiben.
+
+Hältst du das (entsperrte) Handy ans Fach, öffnet Android den Link im
+Standardbrowser – egal welcher, ohne App. SupBot zeigt den Inhalt des Fachs und
+**✓ Alles genommen** hakt den ganzen Tag ab (wie gewohnt mit Vorratsbuchung,
+markiert mit 📳). Erwischst du das Fach von morgen, kommt eine Warnung; ist es
+das von gestern (bis 3 Tage zurück), kannst du die Einnahme nachtragen. In
+Browsern mit Web NFC (Chrome auf Android) gibt es auf der Heute-Seite zusätzlich
+**Box scannen**.
 
 ### Telegram
 

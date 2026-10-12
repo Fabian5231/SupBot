@@ -1,0 +1,32 @@
+{# Slot-Karte mit Einnahmen; erwartet `slot` und `day` #}
+<section class="card slot {{ 'complete' if slot.complete }}" data-slot="{{ slot.slot_id }}">
+  <header class="slot-head">
+    <div>
+      <h2>{{ slot.name }}</h2>
+      <span class="muted">{{ slot.time }} Uhr · {{ slot.done }}/{{ slot.total }}</span>
+    </div>
+    {% if not slot.complete %}
+      <button class="btn small" data-slot-done="{{ slot.slot_id }}" data-day="{{ day }}">Alle abhaken</button>
+    {% else %}
+      <span class="pill done">✓ fertig</span>
+    {% endif %}
+  </header>
+
+  <ul class="intakes">
+    {% for item in slot['items'] %}
+    <li>
+      <label class="check {{ 'checked' if item.taken }}"
+             title="{{ item.supplement_name }} · {{ item.amount|amount }} {{ item.unit }}{% if item.brand %} · {{ item.brand }}{% endif %}">
+        <input type="checkbox" data-intake="{{ item.id }}" {{ 'checked' if item.taken }}>
+        <span class="box"></span>
+        <span class="label">
+          <span class="name">{{ item.supplement_name }}</span>
+          <span class="dose">{{ item.amount|amount }} {{ item.unit }}</span>
+          {% if item.brand %}<span class="muted vendor">{{ item.brand }}</span>{% endif %}
+        </span>
+        <span class="when muted">{% if item.taken and item.taken_at %}{{ item.taken_at[11:16] }}{% if item.source == 'telegram' %} ✈{% elif item.source == 'nfc' %} 📳{% endif %}{% endif %}</span>
+      </label>
+    </li>
+    {% endfor %}
+  </ul>
+</section>

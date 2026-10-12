@@ -7,6 +7,9 @@ from datetime import date, datetime, time, timedelta
 from . import db
 
 WEEKDAY_NAMES = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+WEEKDAY_LONG = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
+# Kennungen der Pillenbox-Faecher, stehen so im Link auf dem NFC-Chip (/box/mo …)
+BOX_KEYS = [name.lower() for name in WEEKDAY_NAMES]
 
 
 # --------------------------------------------------------------------------
@@ -198,6 +201,24 @@ def complete_slot(day: date, slot_id: int, source: str = "telegram") -> list[str
     for row in rows:
         set_intake(row["id"], True, source)
     return [row["name"] for row in rows]
+
+
+def complete_day(day: date, source: str = "web") -> list[str]:
+    """Hakt alle offenen Einnahmen eines Tages ab (ein Pillenbox-Fach = ein Tag)."""
+    names = []
+    for slot in day_plan(day):
+        names += complete_slot(day, slot["slot_id"], source)
+    return names
+
+
+def box_day(key: str, today: date) -> date | None:
+    """Zu welchem Datum gehoert das gescannte Fach? Das naechstgelegene mit dem
+    Wochentag (max. 3 Tage zurueck/voraus): Montagsfach am Dienstag = gestern
+    vergessen, Mittwochsfach am Dienstag = morgen."""
+    if key not in BOX_KEYS:
+        return None
+    delta = (BOX_KEYS.index(key) + 1 - today.isoweekday() + 3) % 7 - 3
+    return today + timedelta(days=delta)
 
 
 def complete_all_due(now: datetime, source: str = "telegram") -> list[tuple[str, list[str]]]:

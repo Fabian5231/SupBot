@@ -213,6 +213,8 @@ code { background: var(--surface-2); padding: .1em .4em; border-radius: 5px; fon
 .btn.danger { background: transparent; color: var(--danger); border-color: var(--line); padding: .3rem .55rem; }
 .btn.danger.icon { font-size: 1.1rem; }
 .btn.danger:hover { background: color-mix(in srgb, var(--danger) 20%, transparent); }
+.btn.big { display: block; width: 100%; padding: .9rem 1rem; font-size: 1.1rem; text-align: center; }
+.btn:disabled { opacity: .6; cursor: default; }
 .ghost-btn {
   text-decoration: none; color: var(--muted); font-size: 1.5rem; line-height: 1;
   padding: .25rem .6rem; border: 1px solid var(--line); border-radius: 9px;
@@ -225,6 +227,14 @@ code { background: var(--surface-2); padding: .1em .4em; border-radius: 5px; fon
 .pill.done { color: var(--accent); border-color: var(--accent-dim); }
 .pill.open { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 50%, var(--line)); }
 .pill.empty { color: var(--danger); }
+
+/* ---------- Pillenbox (NFC) ---------- */
+.nfc-scan { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin-top: .9rem; }
+.nfc-scan[hidden], [data-nfc-only][hidden], [data-nfc-missing][hidden] { display: none; }
+.box-action { margin-bottom: 1rem; }
+.box-row { gap: .5rem; flex-wrap: wrap; }
+.box-row .box-name { flex: 1; }
+.box-row code { order: 3; flex: 1 1 100%; overflow-wrap: anywhere; }
 
 /* ---------- Formulare ---------- */
 .form { display: flex; flex-direction: column; gap: .75rem; }

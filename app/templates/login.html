@@ -8,6 +8,7 @@
     <p class="muted">Bitte anmelden.</p>
     {% if error %}<div class="alert warn">{{ error }}</div>{% endif %}
     <form method="post" action="/login" class="form">
+      <input type="hidden" name="next" value="{{ next }}">
       <label>Passwort
         <input type="password" name="password" autofocus autocomplete="current-password">
       </label>
