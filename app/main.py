@@ -155,6 +155,21 @@ templates.env.globals["units"] = UNITS
 templates.env.globals["weekday_options"] = WEEKDAYS
 
 
+def _static_url(name: str) -> str:
+    """/static/<name>?v=<Inhalts-Hash>: Nach einem Update laedt der Browser die Datei
+    neu, statt eine alte Version aus dem Cache zur neuen Seite zu verwenden."""
+    try:
+        digest = hashlib.sha1((BASE / "static" / name).read_bytes()).hexdigest()[:10]
+    except OSError:
+        return f"/static/{name}"
+    return f"/static/{name}?v={digest}"
+
+
+templates.env.globals["static_url"] = {
+    path.name: _static_url(path.name) for path in (BASE / "static").iterdir() if path.is_file()
+}
+
+
 # --------------------------------------------------------------------------
 # Auth-Routen
 # --------------------------------------------------------------------------
