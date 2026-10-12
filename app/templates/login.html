@@ -1,12 +1,16 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 {% block title %}Anmelden · SupBot{% endblock %}
 
 {% block content %}
 <div class="login">
   <div class="card">
-    <h1>💊 SupBot</h1>
-    <p class="muted">Bitte anmelden.</p>
-    {% if error %}<div class="alert warn">{{ error }}</div>{% endif %}
+    <div class="login-brand">
+      <span class="brand-mark" aria-hidden="true">💊</span>
+      <h1>SupBot</h1>
+    </div>
+    <p class="muted">Bitte melde dich an.</p>
+    {% if error %}<div class="alert warn">{{ icon("alert") }}<div>{{ error }}</div></div>{% endif %}
     <form method="post" action="/login" class="form">
       <input type="hidden" name="next" value="{{ next }}">
       <label>Passwort

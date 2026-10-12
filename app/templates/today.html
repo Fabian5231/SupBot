@@ -1,60 +1,45 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 {% block title %}Heute · SupBot{% endblock %}
 
 {% block content %}
 <section class="hero">
   <div class="hero-head">
-    <a class="ghost-btn" href="/?day={{ prev_day }}" title="Vortag">‹</a>
+    <a class="ghost-btn" href="/?day={{ prev_day }}" title="Vortag" aria-label="Vortag">{{ icon("chevron-left") }}</a>
     <div>
       <h1>{{ "Heute" if is_today else day|de_date }}</h1>
       <p class="muted">{{ day.strftime("%A, %d.%m.%Y")|replace("Monday","Montag")|replace("Tuesday","Dienstag")|replace("Wednesday","Mittwoch")|replace("Thursday","Donnerstag")|replace("Friday","Freitag")|replace("Saturday","Samstag")|replace("Sunday","Sonntag") }}</p>
     </div>
-    <a class="ghost-btn" href="/?day={{ next_day }}" title="Folgetag">›</a>
+    <a class="ghost-btn" href="/?day={{ next_day }}" title="Folgetag" aria-label="Folgetag">{{ icon("chevron-right") }}</a>
   </div>
 
   <div class="progress-ring">
-    <div class="bar"><span id="progress-bar" style="width: {{ stats.percent }}%"></span></div>
     <div class="progress-meta">
       <strong id="progress-text">{{ stats.done }}/{{ stats.total }}</strong>
       <span class="muted">erledigt</span>
-      {% if streak %}<span class="badge">🔥 {{ streak }} Tage Serie</span>{% endif %}
+      {% if streak %}<span class="badge streak">🔥 {{ streak }} Tage Serie</span>{% endif %}
+      <span class="percent" id="progress-percent">{{ stats.percent }} %</span>
     </div>
+    <div class="bar"><span id="progress-bar" style="width: {{ stats.percent }}%"></span></div>
   </div>
 
   {% if is_today %}
   <div class="nfc-scan" data-nfc-only hidden>
-    <button class="btn ghost" type="button" data-nfc-scan>📳 Box scannen</button>
+    <button class="btn ghost" type="button" data-nfc-scan>{{ icon("nfc", 18) }}Box scannen</button>
     <span class="muted small" data-nfc-status></span>
   </div>
   {% endif %}
 </section>
 
-{% if weight_summary %}
-<a class="card weight-mini" href="/gewicht">
-  <div>
-    <div class="weight-mini-value">{{ weight_summary.latest|de_weight }}<small>kg</small></div>
-    <span class="muted small">{{ weight_summary.latest_day|de_short }}</span>
-  </div>
-  {% if weight_summary.delta7 is not none %}
-  <div class="weight-mini-trend">
-    <span class="{{ 'up' if weight_summary.delta7 > 0 else 'down' if weight_summary.delta7 < 0 }}">{{ weight_summary.delta7|de_delta }} kg</span>
-    <div class="muted small">7 Tage</div>
-  </div>
-  {% endif %}
-</a>
-{% else %}
-<a class="card empty weight-mini" href="/gewicht">
-  <span class="muted">Noch kein Gewicht erfasst</span>
-  <span class="btn small">Eintragen</span>
-</a>
-{% endif %}
-
 {% if low %}
 <div class="alert">
-  <strong>🛒 Nachbestellen:</strong>
-  {% for entry in low %}
-    <a href="/vorrat">{{ entry.supplement.name }}</a> ({{ entry.days_left }} T){{ "," if not loop.last }}
-  {% endfor %}
+  {{ icon("cart") }}
+  <div>
+    <strong>Nachbestellen:</strong>
+    {% for entry in low %}
+      <a href="/vorrat">{{ entry.supplement.name }}</a> <span class="muted">({{ entry.days_left }} T)</span>{{ "," if not loop.last }}
+    {% endfor %}
+  </div>
 </div>
 {% endif %}
 
@@ -68,6 +53,30 @@
 {% for slot in plan %}
 {% include "_slot.html" %}
 {% endfor %}
+
+{% if weight_summary %}
+<a class="card weight-mini" href="/gewicht">
+  <div class="grow">
+    <span class="eyebrow">Gewicht · {{ weight_summary.latest_day|de_short }}</span>
+    <div class="weight-mini-value">{{ weight_summary.latest|de_weight }}<small>kg</small></div>
+  </div>
+  {% if weight_summary.delta7 is not none %}
+  <div class="weight-mini-trend">
+    <span class="{{ 'up' if weight_summary.delta7 > 0 else 'down' if weight_summary.delta7 < 0 }}">{{ weight_summary.delta7|de_delta }} kg</span>
+    <div class="muted small">7 Tage</div>
+  </div>
+  {% endif %}
+  {{ icon("chevron-right", 18) }}
+</a>
+{% else %}
+<a class="card empty weight-mini" href="/gewicht">
+  <div>
+    <span class="eyebrow">Gewicht</span>
+    <span class="muted">Noch kein Eintrag</span>
+  </div>
+  <span class="btn small subtle">Eintragen</span>
+</a>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}<script src="{{ static_url['nfc.js'] }}"></script>{% endblock %}

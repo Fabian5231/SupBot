@@ -1,8 +1,11 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 {% block title %}Supplemente · SupBot{% endblock %}
 
 {% block content %}
-<h1>Supplemente</h1>
+<header class="page-head">
+  <h1>Supplemente</h1>
+</header>
 
 <section class="card">
   <h2>{{ "Bearbeiten: " + editing.name if editing else "Neues Supplement" }}</h2>
@@ -68,7 +71,10 @@
 </section>
 
 <section class="card">
-  <h2>Angelegt ({{ supplements|length }})</h2>
+  <div class="section-title">
+    <h2>Angelegt</h2>
+    <span class="muted small">{{ supplements|length }} gesamt</span>
+  </div>
   {% if not supplements %}<p class="muted">Noch nichts angelegt.</p>{% endif %}
   <div class="list">
     {% for sup in supplements %}
@@ -84,20 +90,20 @@
         {% if sup.brand %}<span class="muted vendor">{{ sup.brand }}</span>{% endif %}
         {% if not sup.active %}<span class="pill">pausiert</span>{% endif %}
         <span class="muted small plan">{{ plan_text }}</span>
-        {% if sup.notes %}<span class="muted small note">📝 {{ sup.notes }}</span>{% endif %}
+        {% if sup.notes %}<span class="muted small note">{{ sup.notes }}</span>{% endif %}
       </div>
       <div class="row-actions">
         <a class="btn ghost icon" href="/supplemente?edit={{ sup.id }}"
-           title="Bearbeiten" aria-label="Bearbeiten">✎</a>
+           title="Bearbeiten" aria-label="Bearbeiten">{{ icon("pencil", 18) }}</a>
         <form method="post" action="/supplemente/{{ sup.id }}/aktiv">
           {% set label = "Fortsetzen" if not sup.active else "Pausieren" %}
           <button class="btn ghost icon" title="{{ label }}" aria-label="{{ label }}">
-            {{ "▶" if not sup.active else "❚❚" }}
+            {{ icon("play" if not sup.active else "pause", 18) }}
           </button>
         </form>
         <form method="post" action="/supplemente/{{ sup.id }}/loeschen"
               onsubmit="return confirm('{{ sup.name }} inkl. Historie löschen?')">
-          <button class="btn danger icon" title="Löschen" aria-label="Löschen">×</button>
+          <button class="btn danger icon" title="Löschen" aria-label="Löschen">{{ icon("trash", 18) }}</button>
         </form>
       </div>
     </div>

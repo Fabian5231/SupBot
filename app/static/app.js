@@ -7,6 +7,8 @@
     var text = document.getElementById("progress-text");
     if (bar) bar.style.width = stats.percent + "%";
     if (text) text.textContent = stats.done + "/" + stats.total;
+    var percent = document.getElementById("progress-percent");
+    if (percent) percent.textContent = stats.percent + " %";
   }
 
   function refreshSlot(slotEl) {
@@ -18,7 +20,9 @@
     if (meta) meta.textContent = meta.textContent.replace(/\d+\/\d+$/, done + "/" + boxes.length);
     slotEl.classList.toggle("complete", done === boxes.length);
     var button = slotEl.querySelector("[data-slot-done]");
-    if (button) button.style.display = done === boxes.length ? "none" : "";
+    if (button) button.hidden = done === boxes.length;
+    var pill = slotEl.querySelector("[data-slot-pill]");
+    if (pill) pill.hidden = done !== boxes.length;
   }
 
   document.addEventListener("change", function (event) {
@@ -83,7 +87,11 @@
           refreshSlot(slotEl);
         });
         updateProgress(data.stats);
-        button.closest("[data-day-box]").outerHTML = '<div class="alert ok">✓ Erledigt – gut gemacht!</div>';
+        button.closest("[data-day-box]").outerHTML =
+          '<div class="alert ok"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" ' +
+          'stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+          '<circle cx="12" cy="12" r="9.5"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg>' +
+          '<div>Erledigt – gut gemacht!</div></div>';
       })
       .catch(function () {
         button.disabled = false;

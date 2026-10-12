@@ -2,11 +2,13 @@
 {% block title %}Verlauf · SupBot{% endblock %}
 
 {% block content %}
-<h1>Verlauf</h1>
+<header class="page-head">
+  <h1>Verlauf</h1>
+</header>
 
 <section class="card">
   <div class="stats-row">
-    <div><strong>{{ average if average is not none else "–" }}{% if average is not none %} %{% endif %}</strong><span class="muted">Quote ({{ days }} Tage)</span></div>
+    <div><strong>{{ average if average is not none else "–" }}{% if average is not none %} %{% endif %}</strong><span class="muted">Quote · {{ days }} Tage</span></div>
     <div><strong>🔥 {{ streak }}</strong><span class="muted">Tage Serie</span></div>
   </div>
   <div class="range">
@@ -20,6 +22,9 @@
             title="{{ entry.day|de_date }} – {{ entry.done }}/{{ entry.total }}"></span>
     {% endfor %}
   </div>
+  <div class="heat-legend" aria-hidden="true">
+    <span>weniger</span><span class="cell"></span><span class="cell low"></span><span class="cell half"></span><span class="cell full"></span><span>alles</span>
+  </div>
 </section>
 
 <section class="card">
@@ -28,7 +33,7 @@
     <tbody>
       {% for entry in entries %}
       <tr>
-        <td>{{ entry.weekday }} <a href="/?day={{ entry.day }}">{{ entry.day|de_date }}</a></td>
+        <td><a href="/?day={{ entry.day }}">{{ entry.day|de_date }}</a> <span class="muted">{{ entry.weekday }}</span></td>
         <td>{{ entry.done }}/{{ entry.total }}</td>
         <td>
           {% if entry.percent is none %}<span class="muted">–</span>

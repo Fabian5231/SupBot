@@ -1,11 +1,13 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 {% block title %}Fach {{ box_name }} · SupBot{% endblock %}
 
 {% block content %}
 <section class="hero">
-  <div class="hero-head">
+  <div class="hero-head left">
     <div>
-      <h1>📦 Fach {{ box_name }}</h1>
+      <span class="eyebrow">Pillenbox</span>
+      <h1>Fach {{ box_name }}</h1>
       <p class="muted">
         {%- if offset == 0 %}Heute{% elif offset == -1 %}Gestern{% elif offset == 1 %}Morgen
         {%- elif offset < 0 %}Vor {{ -offset }} Tagen{% else %}In {{ offset }} Tagen{% endif %}
@@ -14,24 +16,31 @@
   </div>
 
   <div class="progress-ring">
-    <div class="bar"><span id="progress-bar" style="width: {{ stats.percent }}%"></span></div>
     <div class="progress-meta">
       <strong id="progress-text">{{ stats.done }}/{{ stats.total }}</strong>
       <span class="muted">erledigt</span>
+      <span class="percent" id="progress-percent">{{ stats.percent }} %</span>
     </div>
+    <div class="bar"><span id="progress-bar" style="width: {{ stats.percent }}%"></span></div>
   </div>
 </section>
 
 {% if offset > 0 %}
 <div class="alert warn">
-  <strong>⚠️ Falsches Fach?</strong> Das ist das Fach für <strong>{{ box_name }}</strong>,
-  heute ist {{ today_name }}.
-  <a href="/box/{{ today_key }}">Zum Fach von heute</a>
+  {{ icon("alert") }}
+  <div>
+    <strong>Falsches Fach?</strong> Das ist das Fach für <strong>{{ box_name }}</strong>,
+    heute ist {{ today_name }}.
+    <a href="/box/{{ today_key }}">Zum Fach von heute</a>
+  </div>
 </div>
 {% elif offset < 0 and stats.open %}
 <div class="alert">
-  <strong>Vergessen?</strong> Das ist das Fach von <strong>{{ box_name }}</strong>, heute ist {{ today_name }}.
-  Ist es noch voll, kannst du die Einnahme hier nachtragen.
+  {{ icon("info") }}
+  <div>
+    <strong>Vergessen?</strong> Das ist das Fach von <strong>{{ box_name }}</strong>, heute ist {{ today_name }}.
+    Ist es noch voll, kannst du die Einnahme hier nachtragen.
+  </div>
 </div>
 {% endif %}
 
@@ -41,10 +50,10 @@
   <a class="btn" href="/supplemente">Plan bearbeiten</a>
 </div>
 {% elif not stats.open %}
-<div class="alert ok">✓ Dieses Fach ist schon erledigt.</div>
+<div class="alert ok">{{ icon("check-circle") }}<div>Dieses Fach ist schon erledigt.</div></div>
 {% elif offset <= 0 %}
 <div class="box-action" data-day-box>
-  <button class="btn big" type="button" data-day-done="{{ day }}">✓ Alles genommen</button>
+  <button class="btn big" type="button" data-day-done="{{ day }}">{{ icon("check") }}Alles genommen</button>
 </div>
 {% endif %}
 
@@ -55,5 +64,5 @@
 {% endfor %}
 {% endif %}
 
-<p class="spaced"><a class="btn ghost small" href="/?day={{ day }}">Zur Tagesansicht</a></p>
+<p class="spaced"><a class="btn ghost" href="/?day={{ day }}">{{ icon("today", 18) }}Zur Tagesansicht</a></p>
 {% endblock %}

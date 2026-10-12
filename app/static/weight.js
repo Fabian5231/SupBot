@@ -310,6 +310,12 @@
 
   // ---------------------------------------------------------- Eintraege
 
+  const TRASH_ICON =
+    '<svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" ' +
+    'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M3 6h18M8 6V4.5A1.5 1.5 0 0 1 9.5 3h5A1.5 1.5 0 0 1 16 4.5V6M18.5 6l-.8 13.1a2 2 0 0 1-2 1.9H8.3' +
+    'a2 2 0 0 1-2-1.9L5.5 6M10 11v5.5M14 11v5.5"/></svg>';
+
   function renderEntries() {
     const rows = [...state.measurements].sort((a, b) => (a.day < b.day ? 1 : -1));
     $("entry-count").textContent = rows.length ? `${rows.length} gesamt` : "";
@@ -328,7 +334,7 @@
           <span class="muted small">${escapeHtml(origin)}</span></span>
         <span class="e-delta ${dir}">${delta === null ? "" : escapeHtml(fmtDelta(delta))}</span>
         <span class="e-weight">${escapeHtml(fmt(row.weight_kg))} kg</span>
-        <button class="btn danger icon" data-day="${escapeHtml(row.day)}" aria-label="Eintrag löschen">×</button>
+        <button class="btn danger icon" data-day="${escapeHtml(row.day)}" aria-label="Eintrag löschen">${TRASH_ICON}</button>
       </li>`;
     }).join("");
 

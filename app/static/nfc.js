@@ -73,7 +73,7 @@
     button.disabled = true;
     status("Halte jetzt den Chip für " + name + " ans Handy …");
     reader.write({ records: [{ recordType: "url", data: url }] }, { signal: fresh() })
-      .then(function () { status("✓ Chip für " + name + " beschrieben."); })
+      .then(function () { status("Chip für " + name + " beschrieben."); })
       .catch(function (err) { status(errorText(err) || "Abgebrochen."); })
       .finally(function () { button.disabled = false; });
   }
@@ -81,7 +81,7 @@
   function copy(button) {
     var url = button.closest(".box-row").querySelector("[data-box-url]").textContent;
     var done = function () {
-      button.textContent = "✓ Kopiert";
+      button.textContent = "Kopiert";
       setTimeout(function () { button.textContent = "Kopieren"; }, 1500);
     };
     if (navigator.clipboard) {

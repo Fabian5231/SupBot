@@ -1,15 +1,14 @@
 {# Slot-Karte mit Einnahmen; erwartet `slot` und `day` #}
+{% from "_icons.html" import icon %}
 <section class="card slot {{ 'complete' if slot.complete }}" data-slot="{{ slot.slot_id }}">
   <header class="slot-head">
     <div>
       <h2>{{ slot.name }}</h2>
       <span class="muted">{{ slot.time }} Uhr · {{ slot.done }}/{{ slot.total }}</span>
     </div>
-    {% if not slot.complete %}
-      <button class="btn small" data-slot-done="{{ slot.slot_id }}" data-day="{{ day }}">Alle abhaken</button>
-    {% else %}
-      <span class="pill done">✓ fertig</span>
-    {% endif %}
+    <button class="btn small subtle" data-slot-done="{{ slot.slot_id }}" data-day="{{ day }}"
+            {{ 'hidden' if slot.complete }}>Alle abhaken</button>
+    <span class="pill done" data-slot-pill {{ 'hidden' if not slot.complete }}>{{ icon("check", 14) }}Erledigt</span>
   </header>
 
   <ul class="intakes">
@@ -24,7 +23,10 @@
           <span class="dose">{{ item.amount|amount }} {{ item.unit }}</span>
           {% if item.brand %}<span class="muted vendor">{{ item.brand }}</span>{% endif %}
         </span>
-        <span class="when muted">{% if item.taken and item.taken_at %}{{ item.taken_at[11:16] }}{% if item.source == 'telegram' %} ✈{% elif item.source == 'nfc' %} 📳{% endif %}{% endif %}</span>
+        <span class="when muted">{% if item.taken and item.taken_at %}
+          {%- if item.source == 'telegram' %}<span title="per Telegram">{{ icon("send", 13) }}</span>
+          {%- elif item.source == 'nfc' %}<span title="per Pillenbox">{{ icon("nfc", 13) }}</span>{% endif -%}
+          {{ item.taken_at[11:16] }}{% endif %}</span>
       </label>
     </li>
     {% endfor %}

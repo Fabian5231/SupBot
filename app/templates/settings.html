@@ -1,11 +1,14 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 {% block title %}Einstellungen · SupBot{% endblock %}
 
 {% block content %}
-<h1>Einstellungen</h1>
+<header class="page-head">
+  <h1>Einstellungen</h1>
+</header>
 
-{% if sent == 'ok' %}<div class="alert ok">Testnachricht verschickt ✅</div>{% endif %}
-{% if sent == 'fail' %}<div class="alert warn">Konnte nicht senden – Token oder Chat-ID prüfen.</div>{% endif %}
+{% if sent == 'ok' %}<div class="alert ok">{{ icon("check-circle") }}<div>Testnachricht verschickt.</div></div>{% endif %}
+{% if sent == 'fail' %}<div class="alert warn">{{ icon("alert") }}<div>Konnte nicht senden – Token oder Chat-ID prüfen.</div></div>{% endif %}
 
 <section class="card">
   <h2>Zeit-Slots</h2>
@@ -14,15 +17,16 @@
     {% for slot in slots %}
     <form method="post" action="/einstellungen/slot" class="list-row inline-form">
       <input type="hidden" name="id" value="{{ slot.id }}">
-      <input name="name" value="{{ slot.name }}" class="grow">
-      <input type="time" name="time" value="{{ slot.time }}">
+      <input name="name" value="{{ slot.name }}" class="grow" aria-label="Name">
+      <input type="time" name="time" value="{{ slot.time }}" aria-label="Uhrzeit">
       <label class="switch small">
         <input type="checkbox" name="active" value="1" {{ 'checked' if slot.active }}>
         <span>aktiv</span>
       </label>
       <button class="btn ghost small">Speichern</button>
-      <button class="btn danger small" formaction="/einstellungen/slot/{{ slot.id }}/loeschen"
-              formmethod="post" onclick="return confirm('Slot inkl. Einnahmen löschen?')">×</button>
+      <button class="btn danger icon" formaction="/einstellungen/slot/{{ slot.id }}/loeschen"
+              formmethod="post" onclick="return confirm('Slot inkl. Einnahmen löschen?')"
+              title="Slot löschen" aria-label="Slot löschen">{{ icon("trash", 18) }}</button>
     </form>
     {% endfor %}
   </div>
@@ -30,7 +34,7 @@
     <input name="name" placeholder="Neuer Slot, z. B. Nachts" required class="grow">
     <input type="time" name="time" value="22:00" required>
     <input type="hidden" name="active" value="1">
-    <button class="btn small">Anlegen</button>
+    <button class="btn small">{{ icon("plus", 16) }}Anlegen</button>
   </form>
 </section>
 
@@ -73,7 +77,7 @@
     </div>
   </form>
   <form method="post" action="/einstellungen/test" class="spaced">
-    <button class="btn ghost">Testnachricht senden</button>
+    <button class="btn ghost">{{ icon("send", 18) }}Testnachricht senden</button>
   </form>
 </section>
 
@@ -113,7 +117,7 @@
     <li><code>/genommen</code> oder ein Codewort – alles Fällige abhaken</li>
     <li><code>/snooze</code> – 30 Minuten Ruhe</li>
   </ul>
-  <p><a class="btn ghost small" href="/logout">Abmelden</a></p>
+  <p><a class="btn ghost" href="/logout">{{ icon("logout", 18) }}Abmelden</a></p>
 </section>
 {% endblock %}
 

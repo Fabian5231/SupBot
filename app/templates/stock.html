@@ -1,13 +1,16 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 {% block title %}Vorrat · SupBot{% endblock %}
 
 {% block content %}
-<h1>Vorrat & Artikel</h1>
-<p class="muted">
-  Reichweite = offener Bestand ÷ Tagesverbrauch aus dem Plan. Jedes Abhaken bucht
-  automatisch von der angebrochenen Packung ab.
-  {% if total_value %}<br>Wert des aktuellen Bestands (Kaufpreise): <strong>{{ total_value|euro }}</strong>{% endif %}
-</p>
+<header class="page-head">
+  <h1>Vorrat</h1>
+  <p class="lead">
+    Reichweite = offener Bestand ÷ Tagesverbrauch aus dem Plan. Jedes Abhaken bucht
+    automatisch von der angebrochenen Packung ab.
+  </p>
+  {% if total_value %}<p class="lead">Wert des Bestands (Kaufpreise): <strong class="num">{{ total_value|euro }}</strong></p>{% endif %}
+</header>
 
 {% if not overview %}
 <div class="card empty">
@@ -18,17 +21,20 @@
 
 {% for entry in overview %}
 {% set sup = entry.supplement %}
+{% if entry.usage > 0 and entry.days_left is not none %}
+  {% set level = "danger" if entry.days_left <= 7 else "warn" if entry.days_left <= threshold else "ok" %}
+{% else %}
+  {% set level = "none" %}
+{% endif %}
 <section class="card stock {{ 'inactive' if not sup.active }}">
   <header class="stock-head">
     <div>
       <h2>
-        {% if entry.usage > 0 and entry.days_left is not none %}
-          {% if entry.days_left <= 7 %}🔴{% elif entry.days_left <= threshold %}🟡{% else %}🟢{% endif %}
-        {% else %}⚪{% endif %}
+        <span class="dot {{ level }}" title="{{ {'danger': 'Fast leer', 'warn': 'Bald nachbestellen', 'ok': 'Ausreichend', 'none': 'Kein Plan'}[level] }}"></span>
         {{ sup.name }}
-        {% if sup.url %}<a class="muted small" href="{{ sup.url }}" target="_blank" rel="noopener">↗ Artikel</a>{% endif %}
+        {% if sup.url %}<a href="{{ sup.url }}" target="_blank" rel="noopener" title="Artikel öffnen" aria-label="Artikel öffnen">{{ icon("external", 16) }}</a>{% endif %}
       </h2>
-      <span class="muted">{{ sup.brand or "ohne Marke" }}{% if not sup.active %} · pausiert{% endif %}</span>
+      <span class="muted small">{{ sup.brand or "ohne Marke" }}{% if not sup.active %} · pausiert{% endif %}</span>
     </div>
     <div class="stock-numbers">
       <div><strong>{{ entry.stock|amount }}</strong><span class="muted">{{ sup.unit }} übrig</span></div>
@@ -43,7 +49,7 @@
   </header>
 
   {% if entry.days_left is not none %}
-  <div class="bar thin">
+  <div class="bar thin {{ level if level in ('warn', 'danger') }}">
     <span style="width: {{ [entry.days_left * 100 // 90, 100]|min }}%"></span>
   </div>
   {% endif %}
@@ -64,8 +70,9 @@
         </td>
         <td class="stock-cell">
           <form method="post" action="/vorrat/packung/{{ pkg.id }}/korrigieren" class="inline-form">
-            <input type="text" inputmode="decimal" name="units_left" size="4" value="{{ pkg.units_left|amount }}">
-            <button class="btn ghost small" title="Bestand korrigieren">✓</button>
+            <input type="text" inputmode="decimal" name="units_left" size="4" value="{{ pkg.units_left|amount }}"
+                   aria-label="Bestand">
+            <button class="btn ghost icon" title="Bestand korrigieren" aria-label="Bestand korrigieren">{{ icon("check", 18) }}</button>
           </form>
         </td>
         <td class="price">{{ pkg.price|euro if pkg.price else "–" }}</td>
@@ -77,7 +84,7 @@
         <td class="del">
           <form method="post" action="/vorrat/packung/{{ pkg.id }}/loeschen"
                 onsubmit="return confirm('Packung löschen?')">
-            <button class="btn danger small">×</button>
+            <button class="btn danger icon" title="Packung löschen" aria-label="Packung löschen">{{ icon("trash", 18) }}</button>
           </form>
         </td>
       </tr>
@@ -89,7 +96,7 @@
   {% endif %}
 
   <details class="add-package">
-    <summary>+ Packung hinzufügen</summary>
+    <summary>{{ icon("plus", 18) }}Packung hinzufügen</summary>
     <form method="post" action="/vorrat/packung" class="form inline-grid">
       <input type="hidden" name="supplement_id" value="{{ sup.id }}">
       <label>Bezeichnung<input name="label" placeholder="z. B. 180er Dose"></label>

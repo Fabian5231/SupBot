@@ -1,10 +1,12 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 {% block title %}Gewicht · SupBot{% endblock %}
 
 {% block content %}
 <section class="hero">
   <div class="weight-hero">
     <div>
+      <span class="eyebrow">Aktuelles Gewicht</span>
       <div class="weight-value"><span id="hero-weight">–</span><small>kg</small></div>
       <p class="muted" id="hero-meta">Noch kein Eintrag</p>
     </div>
@@ -15,15 +17,16 @@
 
 {% if not tesseract %}
 <div class="alert">
-  Tesseract fehlt auf dem Server. Die Leuchtziffern der Waage werden trotzdem
-  gelesen, nur der Rückfall für andere Anzeigen ist ausgeschaltet.
+  {{ icon("info") }}
+  <div>Tesseract fehlt auf dem Server. Die Leuchtziffern der Waage werden trotzdem
+  gelesen, nur der Rückfall für andere Anzeigen ist ausgeschaltet.</div>
 </div>
 {% endif %}
 
 <section class="card">
   <input type="file" id="photo-input" accept="image/*" capture="environment" hidden>
   <div class="actions">
-    <button class="btn" id="btn-photo">📷 Waage fotografieren</button>
+    <button class="btn" id="btn-photo">{{ icon("camera", 18) }}Waage fotografieren</button>
     <button class="btn ghost" id="btn-manual">Ohne Foto eintragen</button>
   </div>
 </section>
@@ -44,12 +47,12 @@
   <p class="muted small" id="ocr-status" hidden></p>
 
   <div class="stepper">
-    <button class="btn ghost" data-step="-0.1" aria-label="0,1 kg weniger">−</button>
+    <button class="btn ghost" data-step="-0.1" aria-label="0,1 kg weniger">{{ icon("minus") }}</button>
     <div class="stepper-value">
       <input type="text" id="weight-input" inputmode="decimal" autocomplete="off" placeholder="0,0">
       <span class="muted">kg</span>
     </div>
-    <button class="btn ghost" data-step="0.1" aria-label="0,1 kg mehr">+</button>
+    <button class="btn ghost" data-step="0.1" aria-label="0,1 kg mehr">{{ icon("plus") }}</button>
   </div>
 
   <div class="candidates" id="candidates" hidden></div>

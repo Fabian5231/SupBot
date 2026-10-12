@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0f1218" media="(prefers-color-scheme: dark)">
-  <meta name="theme-color" content="#f5f6f9" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#16191e" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="SupBot">
   <title>{% block title %}SupBot{% endblock %}</title>
   <link rel="stylesheet" href="{{ static_url['style.css'] }}">
@@ -22,27 +22,19 @@
   ("history", "/verlauf", "Verlauf"),
   ("settings", "/einstellungen", "Einstellungen"),
 ] %}
-{% macro icon(key) -%}
-<svg class="icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-  {%- if key == "today" %}<rect x="3" y="4" width="18" height="17" rx="3"/><path d="M8 2v4M16 2v4M3 10h18M9 15.5l2 2 4-4"/>
-  {%- elif key == "supplements" %}<path d="M10.5 20.5a4.95 4.95 0 1 1-7-7l10-10a4.95 4.95 0 1 1 7 7z"/><path d="M8.5 8.5l7 7"/>
-  {%- elif key == "stock" %}<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>
-  {%- elif key == "weight" %}<rect x="3" y="3" width="18" height="18" rx="5"/><path d="M7.5 11a5 5 0 0 1 9 0M12 11l1.5-2.5"/>
-  {%- elif key == "history" %}<path d="M3 3v18h18"/><path d="M8 17v-5M13 17V8M18 17v-3"/>
-  {%- else %}<path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/>
-  {%- endif %}
-</svg>
-{%- endmacro %}
+{% from "_icons.html" import icon %}
 {% if nav %}
 <header class="topbar">
-  <a class="brand" href="/">💊 <span>SupBot</span></a>
-  <nav class="topnav">
-    {% for key, href, label in nav_items %}
-    <a href="{{ href }}" class="{{ 'active' if nav == key }}">{{ label }}</a>
-    {% endfor %}
-  </nav>
-  <a href="/einstellungen" class="topbar-settings {{ 'active' if nav == 'settings' }}"
-     title="Einstellungen" aria-label="Einstellungen">{{ icon("settings") }}</a>
+  <div class="topbar-inner">
+    <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">💊</span><span>SupBot</span></a>
+    <nav class="topnav">
+      {% for key, href, label in nav_items %}
+      <a href="{{ href }}" class="{{ 'active' if nav == key }}">{{ label }}</a>
+      {% endfor %}
+    </nav>
+    <a href="/einstellungen" class="topbar-settings {{ 'active' if nav == 'settings' }}"
+       title="Einstellungen" aria-label="Einstellungen">{{ icon("settings", 22) }}</a>
+  </div>
 </header>
 {% endif %}
 
@@ -54,7 +46,7 @@
 <nav class="tabbar" aria-label="Navigation">
   {% for key, href, label in nav_items if key != "settings" %}
   <a href="{{ href }}" class="{{ 'active' if nav == key }}"
-     {{ 'aria-current="page"'|safe if nav == key }}>{{ icon(key) }}<span>{{ label }}</span></a>
+     {{ 'aria-current="page"'|safe if nav == key }}><span class="tab-icon">{{ icon(key, 22) }}</span><span class="tab-label">{{ label }}</span></a>
   {% endfor %}
 </nav>
 {% endif %}
