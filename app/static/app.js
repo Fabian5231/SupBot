@@ -11,6 +11,7 @@
   }
 
   function confetti() {
+    if (document.body.hasAttribute("data-no-confetti")) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     var colors = ["#0f766e", "#3fb9a8", "#5b6fd6", "#e3a547", "#f07167", "#8c9cf0"];
     for (var i = 0; i < 70; i++) {

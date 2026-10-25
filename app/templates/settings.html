@@ -82,6 +82,17 @@
 </section>
 
 <section class="card">
+  <h2>Darstellung</h2>
+  <form method="post" action="/einstellungen/darstellung">
+    <label class="switch">
+      <input type="checkbox" name="confetti" value="1" {{ 'checked' if confetti }} onchange="this.form.submit()">
+      <span>Konfetti, wenn alles für den Tag erledigt ist 🎉</span>
+    </label>
+    <noscript><button class="btn ghost small spaced">Speichern</button></noscript>
+  </form>
+</section>
+
+<section class="card">
   <h2>Pillenbox (NFC)</h2>
   <p class="muted">
     Ein NFC-Chip (z. B. NTAG213-Sticker) pro Fach. Auf jeden Chip kommt der Link des Fachs –

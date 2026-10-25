@@ -134,6 +134,7 @@ def render(request: Request, template: str, **context) -> HTMLResponse:
     context.setdefault("today", db.today())
     context.setdefault("now", db.now())
     context.setdefault("nav", "")
+    context.setdefault("confetti", db.get_setting("confetti", "1") == "1")
     return templates.TemplateResponse(request, template, context)
 
 
@@ -565,6 +566,12 @@ async def settings_save(
     db.set_setting("quiet_to", quiet_to or "06:30")
     db.set_setting("low_stock_days", max(0, int(float(low_stock_days or 10))))
     db.set_setting("chat_id", chat_id.strip())
+    return RedirectResponse("/einstellungen", status_code=303)
+
+
+@app.post("/einstellungen/darstellung")
+async def settings_display(confetti: str = Form("0")):
+    db.set_setting("confetti", "1" if confetti == "1" else "0")
     return RedirectResponse("/einstellungen", status_code=303)
 
 

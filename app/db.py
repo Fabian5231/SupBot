@@ -120,6 +120,7 @@ DEFAULT_SETTINGS = {
     "chat_id": "",
     "update_offset": "0",
     "last_stock_warning": "",
+    "confetti": "1",                 # Konfetti, wenn der Tag komplett ist
 }
 
 DEFAULT_SLOTS = [
