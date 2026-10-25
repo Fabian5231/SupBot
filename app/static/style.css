@@ -748,6 +748,93 @@ td a { text-decoration: none; font-weight: 500; }
   .check:active { background: var(--hover); }
 }
 
+/* ==========================================================================
+   Animationen – kurz und ruhig, nichts davon blockiert die Bedienung
+   ========================================================================== */
+
+/* Weicher Uebergang zwischen den Seiten (Chrome/Edge/Safari, sonst normal) */
+@view-transition { navigation: auto; }
+.topbar { view-transition-name: topbar; }
+.tabbar { view-transition-name: tabbar; }
+::view-transition-old(root) { animation: vt-out .16s ease both; }
+::view-transition-new(root) { animation: vt-in .24s cubic-bezier(.2, .7, .2, 1) both; }
+@keyframes vt-out { to { opacity: 0; } }
+@keyframes vt-in { from { opacity: 0; transform: translateY(6px); } }
+
+/* Karten erscheinen beim Laden nacheinander */
+main > :not(.toast) { animation: rise-in .38s cubic-bezier(.2, .7, .2, 1) both; }
+main > :nth-child(2) { animation-delay: .04s; }
+main > :nth-child(3) { animation-delay: .08s; }
+main > :nth-child(4) { animation-delay: .12s; }
+main > :nth-child(5) { animation-delay: .16s; }
+main > :nth-child(6) { animation-delay: .2s; }
+main > :nth-child(n+7) { animation-delay: .24s; }
+@keyframes rise-in { from { opacity: 0; transform: translateY(10px); } }
+
+/* Fortschrittsbalken laeuft beim Laden von links ein */
+.bar span { transform-origin: left center; animation: bar-grow .7s .15s cubic-bezier(.2, .7, .2, 1) both; }
+@keyframes bar-grow { from { transform: scaleX(0); } }
+.bar span { transition: width .45s cubic-bezier(.2, .7, .2, 1), background .3s ease; }
+.progress-ring.full .bar span {
+  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 55%, #fff), var(--accent));
+  background-size: 200% 100%;
+  animation: bar-grow .7s .15s cubic-bezier(.2, .7, .2, 1) both, shimmer 2.4s 1s ease-in-out infinite;
+}
+@keyframes shimmer { 0%, 100% { background-position: 100% 0; } 50% { background-position: 0 0; } }
+.bump { display: inline-block; animation: bump .35s ease; }
+@keyframes bump { 40% { transform: scale(1.18); } }
+
+/* Abhaken: Kaestchen federt, Haken zeichnet sich, Zeile leuchtet kurz auf */
+.check .box::after { transition: opacity .15s ease, transform .25s cubic-bezier(.3, 1.6, .5, 1); }
+.check.pop .box { animation: box-pop .4s cubic-bezier(.3, 1.5, .5, 1); }
+.check.pop { animation: row-flash .7s ease; }
+@keyframes box-pop { 0% { transform: scale(1); } 35% { transform: scale(.82); } 70% { transform: scale(1.12); } 100% { transform: scale(1); } }
+@keyframes row-flash { 0% { background: var(--accent-soft); } 100% { background: transparent; } }
+.check .name { transition: color .25s ease, text-decoration-color .25s ease; }
+.check .when { animation: fade-in .3s ease both; }
+
+/* Slot komplett: Karte glueht einmal, "Erledigt" springt herein */
+.slot { transition: border-color .3s ease; }
+.slot.complete { border-color: var(--accent-line); }
+.slot.celebrate { animation: slot-glow .9s ease; }
+@keyframes slot-glow {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); }
+  100% { box-shadow: 0 0 0 14px transparent; }
+}
+.pill.done:not([hidden]) { animation: pill-in .4s cubic-bezier(.3, 1.6, .5, 1) both; }
+@keyframes pill-in { from { opacity: 0; transform: scale(.6); } }
+[data-slot-done]:not([hidden]) { animation: fade-in .25s ease both; }
+@keyframes fade-in { from { opacity: 0; } }
+
+/* Serie: Abzeichen springt nach dem Laden herein */
+.badge.streak { animation: pill-in .45s .35s cubic-bezier(.3, 1.6, .5, 1) both; }
+
+/* Hinweise und Toast */
+.alert { animation: rise-in .35s cubic-bezier(.2, .7, .2, 1) both; }
+.toast:not([hidden]) { animation: toast-in .3s cubic-bezier(.2, .9, .3, 1.2) both; }
+@keyframes toast-in { from { opacity: 0; transform: translate(-50%, 12px) scale(.96); } }
+
+/* Navigation: aktiver Tab bekommt seine Pille mit kleinem Federn */
+.tabbar a { transition: color .2s ease; }
+.tabbar a:active .tab-icon { transform: scale(.9); }
+.tab-icon { transition: background .2s ease, transform .15s ease; }
+.tabbar a.active .tab-icon { animation: tab-in .35s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes tab-in { from { transform: scaleX(.55); opacity: .4; } }
+.ghost-btn:active, .card.weight-mini:active { transform: scale(.97); }
+.card.weight-mini { transition: transform .12s ease, border-color .15s ease; }
+
+/* Tag komplett: Konfetti (Teile erzeugt app.js) */
+.confetti {
+  position: fixed; top: 0; z-index: 30; pointer-events: none;
+  width: 8px; height: 12px; border-radius: 2px;
+  animation: confetti-fall var(--dur, 1.6s) cubic-bezier(.25, .6, .4, 1) forwards;
+}
+@keyframes confetti-fall {
+  0% { transform: translate(0, var(--y0, 30vh)) rotate(0); opacity: 1; }
+  100% { transform: translate(var(--dx, 0), 105vh) rotate(var(--rot, 540deg)); opacity: .9; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { transition: none !important; }
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none !important; }
 }

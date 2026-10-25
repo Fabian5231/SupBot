@@ -13,7 +13,7 @@
     <a class="ghost-btn" href="/?day={{ next_day }}" title="Folgetag" aria-label="Folgetag">{{ icon("chevron-right") }}</a>
   </div>
 
-  <div class="progress-ring">
+  <div class="progress-ring{{ ' full' if stats.total and stats.done == stats.total }}">
     <div class="progress-meta">
       <strong id="progress-text">{{ stats.done }}/{{ stats.total }}</strong>
       <span class="muted">erledigt</span>
