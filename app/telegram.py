@@ -13,7 +13,7 @@ from datetime import date, datetime, time, timedelta
 
 import httpx
 
-from . import config, db, services
+from . import config, db, services, zentrale
 
 log = logging.getLogger("supbot.telegram")
 
@@ -148,6 +148,46 @@ def done_message(slot: dict) -> str:
     return f"✅ <b>{esc(slot['name'])}</b> erledigt{when}\n<i>{esc(names)}</i>"
 
 
+def reminder_tag(day: date, slot_id: int) -> str:
+    """Eine Kennung pro Slot und Tag: jede Erinnerung ersetzt in der App die vorige."""
+    return f"slot-{slot_id}-{day.isoformat()}"
+
+
+def slot_notice(slot: dict, day: date, nag: int = 0) -> dict:
+    """Dieselbe Erinnerung fuer die Zentrale: Klartext und die zwei Knoepfe."""
+    title = f"{'⏰' if nag == 0 else '🔁'} {slot['name']} – {slot['time']} Uhr"
+    if nag:
+        title += f" (Erinnerung {nag + 1})"
+    lines = [
+        f"• {i['supplement_name']} – {services.fmt_amount(i['amount'])} {i['unit']}"
+        for i in slot["items"] if not i["taken"]
+    ]
+    done = [i["supplement_name"] for i in slot["items"] if i["taken"]]
+    if done:
+        lines += ["", "schon erledigt: " + ", ".join(done)]
+    return {
+        "title": title,
+        "body": "\n".join(lines),
+        "tag": reminder_tag(day, slot["slot_id"]),
+        "actions": [
+            {"id": f"slot:{slot['slot_id']}:{day.isoformat()}", "title": "✅ Alle genommen"},
+            {"id": f"snooze:{slot['slot_id']}:{SNOOZE_MIN}", "title": f"⏰ Später ({SNOOZE_MIN} Min)"},
+        ],
+    }
+
+
+def done_notice(slot: dict, day: date) -> dict:
+    """Ersetzt die Erinnerung in der App leise, wenn anderswo abgehakt wurde."""
+    times = [i["taken_at"][11:16] for i in slot["items"] if i["taken_at"]]
+    when = f" · {max(times)} Uhr" if times else ""
+    return {
+        "title": f"✅ {slot['name']} erledigt{when}",
+        "body": ", ".join(i["supplement_name"] for i in slot["items"]),
+        "tag": reminder_tag(day, slot["slot_id"]),
+        "priority": "low",
+    }
+
+
 def find_slot(day: date, slot_id: int) -> dict | None:
     return next((s for s in services.day_plan(day) if s["slot_id"] == slot_id), None)
 
@@ -158,14 +198,16 @@ async def close_reminder(chat: str, day: date, slot_id: int, message_id: int | N
     if slot is None or not slot["complete"]:
         return
     state = db.one(
-        "SELECT message_id FROM reminders WHERE day = ? AND slot_id = ?",
+        "SELECT message_id, zentrale_open FROM reminders WHERE day = ? AND slot_id = ?",
         (day.isoformat(), slot_id),
     )
     ids = {message_id, state["message_id"] if state else None} - {None}
     for mid in ids:
         await bot.edit_text(chat, mid, done_message(slot))
+    if state and state["zentrale_open"]:
+        await zentrale.notify(**done_notice(slot, day))
     db.execute(
-        "UPDATE reminders SET message_id = NULL WHERE day = ? AND slot_id = ?",
+        "UPDATE reminders SET message_id = NULL, zentrale_open = 0 WHERE day = ? AND slot_id = ?",
         (day.isoformat(), slot_id),
     )
 
@@ -175,7 +217,8 @@ async def close_finished_reminders(chat: str, now: datetime) -> None:
     (per Codewort, Button oder Weboberflaeche)."""
     since = (now.date() - timedelta(days=1)).isoformat()
     rows = db.query(
-        "SELECT day, slot_id FROM reminders WHERE message_id IS NOT NULL AND day >= ?",
+        "SELECT day, slot_id FROM reminders "
+        "WHERE (message_id IS NOT NULL OR zentrale_open = 1) AND day >= ?",
         (since,),
     )
     for row in rows:
@@ -339,6 +382,48 @@ async def handle_callback(callback: dict) -> None:
         await bot.answer_callback(callback["id"])
 
 
+async def handle_zentrale_action(action: str) -> dict:
+    """Knopf in einer Benachrichtigung der Zentrale - wie handle_callback.
+
+    Die App hat die Benachrichtigung dabei schon geschlossen und die Meldung
+    als erledigt markiert; hier bleibt nur der Slot und die Telegram-Nachricht.
+    """
+    now = db.now()
+    chat = chat_id()
+    parts = action.split(":")
+    try:
+        if parts[0] == "slot" and len(parts) == 3:
+            day, slot_id = date.fromisoformat(parts[2]), int(parts[1])
+        elif parts[0] == "snooze" and len(parts) == 3:
+            slot_id, minutes = int(parts[1]), int(parts[2])
+        else:
+            raise ValueError(action)
+    except ValueError:
+        return {"ok": False, "text": "Unbekannter Knopf"}
+
+    if parts[0] == "slot":
+        services.complete_slot(day, slot_id, "app")
+        db.execute(
+            "UPDATE reminders SET zentrale_open = 0 WHERE day = ? AND slot_id = ?",
+            (day.isoformat(), slot_id),
+        )
+        if chat:
+            await close_reminder(chat, day, slot_id)
+        return {"ok": True, "text": "Abgehakt ✅"}
+
+    snooze_slot(now, slot_id, minutes)
+    state = db.one(
+        "SELECT message_id FROM reminders WHERE day = ? AND slot_id = ?",
+        (now.date().isoformat(), slot_id),
+    )
+    slot = find_slot(now.date(), slot_id)
+    if chat and state and state["message_id"] and slot and not slot["complete"]:
+        until = (now + timedelta(minutes=minutes)).strftime("%H:%M")
+        text = slot_message(slot) + f"\n\n😴 <i>Ich erinnere dich um {until} Uhr.</i>"
+        await bot.edit_text(chat, state["message_id"], text, slot_keyboard(slot_id, now.date(), snoozed=True))
+    return {"ok": True, "text": f"{minutes} Minuten Ruhe 😴"}
+
+
 # --------------------------------------------------------------------------
 # Snooze / Reminder-Status
 # --------------------------------------------------------------------------
@@ -450,27 +535,33 @@ async def check_reminders() -> None:
             if last and (now - last) < timedelta(minutes=interval):
                 continue
 
-        message = await bot.send(
-            chat,
-            slot_message(slot, nag=sent),
-            slot_keyboard(slot["slot_id"], now.date()),
-        )
-        # Neue Nachricht, damit das Handy wieder klingelt; die vorige verschwindet,
-        # damit im Chat immer nur eine offene Erinnerung pro Slot steht.
-        if message and state and state["message_id"]:
-            await bot.delete(chat, state["message_id"])
+        # Zuerst an die Zentrale (Push mit Knoepfen, ersetzt dort die vorige Erinnerung)
+        answer = await zentrale.notify(**slot_notice(slot, now.date(), nag=sent))
+        message = None
+        if zentrale.telegram_wanted(answer):
+            message = await bot.send(
+                chat,
+                slot_message(slot, nag=sent),
+                slot_keyboard(slot["slot_id"], now.date()),
+            )
+            # Neue Nachricht, damit das Handy wieder klingelt; die vorige verschwindet,
+            # damit im Chat immer nur eine offene Erinnerung pro Slot steht.
+            if message and state and state["message_id"]:
+                await bot.delete(chat, state["message_id"])
         db.execute(
-            "INSERT INTO reminders (day, slot_id, sent_count, last_sent, snooze_until, message_id) "
-            "VALUES (?, ?, 1, ?, NULL, ?) "
+            "INSERT INTO reminders (day, slot_id, sent_count, last_sent, snooze_until, message_id, zentrale_open) "
+            "VALUES (?, ?, 1, ?, NULL, ?, ?) "
             "ON CONFLICT(day, slot_id) DO UPDATE SET "
             "  sent_count = reminders.sent_count + 1, last_sent = excluded.last_sent, "
             "  snooze_until = NULL, "
-            "  message_id = COALESCE(excluded.message_id, reminders.message_id)",
+            "  message_id = COALESCE(excluded.message_id, reminders.message_id), "
+            "  zentrale_open = MAX(reminders.zentrale_open, excluded.zentrale_open)",
             (
                 day_s,
                 slot["slot_id"],
                 now.isoformat(timespec="seconds"),
                 message["message_id"] if message else None,
+                1 if answer is not None else 0,
             ),
         )
 
@@ -489,6 +580,7 @@ async def check_low_stock(chat: str, now: datetime) -> None:
     if not entries:
         return
     lines = ["🛒 <b>Nachbestellen</b>", ""]
+    plain = []
     for entry in entries:
         sup = entry["supplement"]
         lines.append(
@@ -496,12 +588,20 @@ async def check_low_stock(chat: str, now: datetime) -> None:
             f"(leer am {entry['empty_on'].strftime('%d.%m.')})"
             + (f"\n  {esc(sup['url'])}" if sup["url"] else "")
         )
-    await bot.send(chat, "\n".join(lines))
+        plain.append(
+            f"• {sup['name']} – noch {entry['days_left']} Tage (leer am {entry['empty_on'].strftime('%d.%m.')})"
+            + (f"\n  {sup['url']}" if sup["url"] else "")
+        )
+    answer = await zentrale.notify("🛒 Nachbestellen", "\n".join(plain), tag="vorrat")
+    if zentrale.telegram_wanted(answer):
+        await bot.send(chat, "\n".join(lines))
 
 
 async def send_test_message() -> bool:
+    """Testknopf in den Einstellungen: geht an beide Wege, egal wie der Schalter steht."""
+    answer = await zentrale.notify("🔔 Testnachricht von SupBot", "Verbindung steht.")
     chat = chat_id()
     if not chat or not enabled():
-        return False
+        return answer is not None
     result = await bot.send(chat, "🔔 Testnachricht von SupBot – Verbindung steht.")
-    return result is not None
+    return result is not None or answer is not None

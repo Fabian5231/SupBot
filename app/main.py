@@ -25,7 +25,7 @@ from fastapi.responses import (
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import config, db, ocr, services, telegram, weight
+from . import config, db, ocr, services, telegram, weight, zentrale
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)-7s %(name)s: %(message)s"
@@ -104,6 +104,7 @@ async def lifespan(app: FastAPI):
             except (asyncio.CancelledError, Exception):
                 pass
         await telegram.bot.aclose()
+        await zentrale.client.aclose()
 
 
 app = FastAPI(title="SupBot", lifespan=lifespan, docs_url=None, redoc_url=None)
@@ -113,7 +114,8 @@ app.mount("/static", StaticFiles(directory=str(BASE / "static")), name="static")
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
     path = request.url.path
-    if path.startswith(("/static", "/login", "/healthz")) or logged_in(request):
+    # /zentrale/ weist sich per Token aus, nicht per Login-Cookie
+    if path.startswith(("/static", "/login", "/healthz", "/zentrale/")) or logged_in(request):
         return await call_next(request)
     if path.startswith("/api/"):
         return JSONResponse({"error": "unauthorized"}, status_code=401)
@@ -214,6 +216,20 @@ async def logout():
 @app.get("/healthz")
 async def healthz():
     return {"ok": True, "time": db.now().isoformat(timespec="seconds")}
+
+
+@app.post("/zentrale/aktion")
+async def zentrale_action(request: Request):
+    """Knopfdruck in einer Benachrichtigung der Zentrale (app.fabian-social.dev)."""
+    if not zentrale.token_ok(request.headers.get("authorization")):
+        return JSONResponse({"ok": False, "text": "Token fehlt oder ist falsch"}, status_code=401)
+    try:
+        data = await request.json()
+    except ValueError:
+        data = None
+    if not isinstance(data, dict) or not isinstance(data.get("action"), str):
+        return JSONResponse({"ok": False, "text": "action fehlt"}, status_code=400)
+    return await telegram.handle_zentrale_action(data["action"])
 
 
 # --------------------------------------------------------------------------

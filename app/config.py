@@ -34,6 +34,9 @@ def _env(key: str, default: str = "") -> str:
 
 TELEGRAM_TOKEN = _env("SUPBOT_TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = _env("SUPBOT_TELEGRAM_CHAT_ID")
+# Zentrale (eigene App, app.fabian-social.dev) - ohne Token aus
+ZENTRALE_URL = _env("SUPBOT_ZENTRALE_URL", "http://127.0.0.1:8088").rstrip("/")
+ZENTRALE_TOKEN = _env("SUPBOT_ZENTRALE_TOKEN")
 WEB_PASSWORD = _env("SUPBOT_PASSWORD")
 SECRET = _env("SUPBOT_SECRET", "supbot-insecure-default-change-me")
 TZ_NAME = _env("SUPBOT_TZ", "Europe/Berlin")

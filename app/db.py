@@ -78,6 +78,7 @@ CREATE TABLE IF NOT EXISTS reminders (
     last_sent     TEXT,
     snooze_until  TEXT,
     message_id    INTEGER,                                    -- letzte Telegram-Erinnerung
+    zentrale_open INTEGER NOT NULL DEFAULT 0,                 -- Erinnerung steht offen in der Zentrale
     PRIMARY KEY (day, slot_id)
 );
 
@@ -106,6 +107,7 @@ CREATE INDEX IF NOT EXISTS idx_measurements_day ON measurements(day DESC);
 MIGRATIONS = [
     ("intakes", "booked", "REAL"),
     ("reminders", "message_id", "INTEGER"),
+    ("reminders", "zentrale_open", "INTEGER NOT NULL DEFAULT 0"),
 ]
 
 DEFAULT_SETTINGS = {
