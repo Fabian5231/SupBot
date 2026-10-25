@@ -7,6 +7,12 @@ server {
     listen 80;
     server_name supplements.deine-domain.de;
 
+    # Mit zentralem Login (authgate, nach certbot im 443-Block):
+    #   include /etc/nginx/snippets/authgate.conf;
+    #   location = /healthz    { auth_request off; proxy_pass http://127.0.0.1:8080; }
+    #   location ^~ /zentrale/ { auth_request off; proxy_pass http://127.0.0.1:8080; }
+    # und SUPBOT_AUTHGATE_URL=http://127.0.0.1:9180/check in .env (siehe README).
+
     location / {
         proxy_pass http://127.0.0.1:8080;
         proxy_set_header Host              $host;

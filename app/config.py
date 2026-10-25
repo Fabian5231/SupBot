@@ -38,6 +38,12 @@ TELEGRAM_CHAT_ID = _env("SUPBOT_TELEGRAM_CHAT_ID")
 ZENTRALE_URL = _env("SUPBOT_ZENTRALE_URL", "http://127.0.0.1:8088").rstrip("/")
 ZENTRALE_TOKEN = _env("SUPBOT_ZENTRALE_TOKEN")
 WEB_PASSWORD = _env("SUPBOT_PASSWORD")
+# Zentraler Login (authgate). Gesetzt -> gilt dessen Cookie, SUPBOT_PASSWORD wird ignoriert.
+# Pruef-URL z. B. http://127.0.0.1:9180/check, Login/Logout liegen per nginx unter /_auth/.
+AUTHGATE_CHECK_URL = _env("SUPBOT_AUTHGATE_URL")
+AUTHGATE_LOGIN = "/_auth/login"
+AUTHGATE_LOGOUT = "/_auth/logout"
+AUTHGATE_CACHE_SECONDS = 60
 SECRET = _env("SUPBOT_SECRET", "supbot-insecure-default-change-me")
 TZ_NAME = _env("SUPBOT_TZ", "Europe/Berlin")
 try:

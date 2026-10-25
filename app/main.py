@@ -12,8 +12,9 @@ import uuid
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 
+import httpx
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import (
     FileResponse,
@@ -65,10 +66,54 @@ def token_valid(token: str | None) -> bool:
         return False
 
 
-def logged_in(request: Request) -> bool:
+class AuthgateDown(Exception):
+    """authgate antwortet nicht - lieber 503 als ungeschuetzt."""
+
+
+authgate_client = httpx.AsyncClient(timeout=5)
+_authgate_cache: dict[str, float] = {}
+
+
+async def authgate_ok(request: Request) -> bool:
+    """Fragt authgate, ob das Login-Cookie gilt (Ergebnis kurz zwischengespeichert).
+
+    nginx prueft das schon fuer die oeffentliche Adresse; hier nochmal, damit auch
+    ein direkter Zugriff auf 127.0.0.1 geschuetzt bleibt.
+    """
+    cookie = request.headers.get("cookie") or ""
+    if not cookie:
+        return False
+    digest = hashlib.sha256(cookie.encode()).hexdigest()
+    if _authgate_cache.get(digest, 0) > time_module.monotonic():
+        return True
+    try:
+        response = await authgate_client.get(config.AUTHGATE_CHECK_URL, headers={"Cookie": cookie})
+    except httpx.HTTPError as exc:
+        raise AuthgateDown from exc
+    if response.status_code != 200:
+        return False
+    if len(_authgate_cache) > 1000:
+        _authgate_cache.clear()
+    _authgate_cache[digest] = time_module.monotonic() + config.AUTHGATE_CACHE_SECONDS
+    return True
+
+
+async def logged_in(request: Request) -> bool:
+    if config.AUTHGATE_CHECK_URL:
+        return await authgate_ok(request)
     if not config.WEB_PASSWORD:
         return True
     return token_valid(request.cookies.get(config.COOKIE_NAME))
+
+
+def same_origin(request: Request) -> bool:
+    """Das authgate-Cookie gilt fuer alle *.fabian-social.dev-Seiten (SameSite=Lax
+    zaehlt die als gleiche Site) - aendernde Anfragen nur von dieser Seite annehmen."""
+    site = request.headers.get("sec-fetch-site")
+    origin = request.headers.get("origin")
+    if site and site not in ("same-origin", "none"):
+        return False
+    return not origin or urlsplit(origin).netloc == request.headers.get("host", "")
 
 
 # --------------------------------------------------------------------------
@@ -91,7 +136,9 @@ async def lifespan(app: FastAPI):
         log.info("Telegram-Tasks gestartet")
     else:
         log.warning("SUPBOT_TELEGRAM_TOKEN fehlt – nur Weboberfläche aktiv")
-    if not config.WEB_PASSWORD:
+    if config.AUTHGATE_CHECK_URL:
+        log.info("Login über authgate (%s)", config.AUTHGATE_CHECK_URL)
+    elif not config.WEB_PASSWORD:
         log.warning("SUPBOT_PASSWORD ist leer – die Oberfläche ist ungeschützt!")
     try:
         yield
@@ -105,6 +152,7 @@ async def lifespan(app: FastAPI):
                 pass
         await telegram.bot.aclose()
         await zentrale.client.aclose()
+        await authgate_client.aclose()
 
 
 app = FastAPI(title="SupBot", lifespan=lifespan, docs_url=None, redoc_url=None)
@@ -115,12 +163,27 @@ app.mount("/static", StaticFiles(directory=str(BASE / "static")), name="static")
 async def auth_middleware(request: Request, call_next):
     path = request.url.path
     # /zentrale/ weist sich per Token aus, nicht per Login-Cookie
-    if path.startswith(("/static", "/login", "/healthz", "/zentrale/")) or logged_in(request):
+    if path.startswith(("/static", "/login", "/logout", "/healthz", "/zentrale/")):
+        return await call_next(request)
+    try:
+        ok = await logged_in(request)
+    except AuthgateDown:
+        log.warning("authgate nicht erreichbar")
+        return JSONResponse({"error": "login check unavailable"}, status_code=503)
+    if ok:
+        if config.AUTHGATE_CHECK_URL and request.method not in ("GET", "HEAD") and not same_origin(request):
+            return JSONResponse({"error": "forbidden"}, status_code=403)
         return await call_next(request)
     if path.startswith("/api/"):
         return JSONResponse({"error": "unauthorized"}, status_code=401)
-    target = "/login" if path == "/" else f"/login?next={quote(path)}"
-    return RedirectResponse(target, status_code=303)
+    return RedirectResponse(login_url(path), status_code=303)
+
+
+def login_url(next_path: str = "/") -> str:
+    if config.AUTHGATE_CHECK_URL:
+        # authgate liest next roh; quote() laesst "/" stehen, der Browser versteht beides
+        return f"{config.AUTHGATE_LOGIN}?next={quote(next_path)}"
+    return "/login" if next_path == "/" else f"/login?next={quote(next_path)}"
 
 
 def _safe_next(value: str | None) -> str:
@@ -187,13 +250,17 @@ templates.env.globals["static_url"] = {
 # --------------------------------------------------------------------------
 @app.get("/login", response_class=HTMLResponse)
 async def login_form(request: Request, next: str | None = None):
-    if logged_in(request):
+    if config.AUTHGATE_CHECK_URL:
+        return RedirectResponse(login_url(_safe_next(next)), status_code=303)
+    if await logged_in(request):
         return RedirectResponse(_safe_next(next), status_code=303)
     return render(request, "login.html", error=None, next=_safe_next(next))
 
 
 @app.post("/login")
 async def login(request: Request, password: str = Form(""), next: str = Form("/")):
+    if config.AUTHGATE_CHECK_URL:
+        return RedirectResponse(login_url(_safe_next(next)), status_code=303)
     if not config.WEB_PASSWORD or secrets.compare_digest(password, config.WEB_PASSWORD):
         response = RedirectResponse(_safe_next(next), status_code=303)
         response.set_cookie(
@@ -209,7 +276,8 @@ async def login(request: Request, password: str = Form(""), next: str = Form("/"
 
 @app.get("/logout")
 async def logout():
-    response = RedirectResponse("/login", status_code=303)
+    target = config.AUTHGATE_LOGOUT if config.AUTHGATE_CHECK_URL else "/login"
+    response = RedirectResponse(target, status_code=303)
     response.delete_cookie(config.COOKIE_NAME)
     return response
 

@@ -66,6 +66,7 @@ Wichtige Werte in `.env`:
 | `SUPBOT_TELEGRAM_CHAT_ID` | optional – wird sonst per `/start` gesetzt |
 | `SUPBOT_PASSWORD` | Passwort für die Weboberfläche |
 | `SUPBOT_SECRET` | Zufallsstring zum Signieren des Login-Cookies |
+| `SUPBOT_AUTHGATE_URL` | optional – Prüf-URL des zentralen Logins (authgate), z. B. `http://127.0.0.1:9180/check`; ersetzt dann das Passwort |
 | `SUPBOT_TZ` | Zeitzone, Standard `Europe/Berlin` |
 | `SUPBOT_HOST` / `SUPBOT_PORT` | Bind-Adresse, Standard `127.0.0.1:8080` |
 | `SUPBOT_TESSERACT_CMD` | Pfad zur Tesseract-Binary, leer = automatisch suchen |
@@ -84,6 +85,17 @@ ln -s /etc/nginx/sites-available/supbot /etc/nginx/sites-enabled/
 nginx -t && systemctl reload nginx
 certbot --nginx -d supplements.deine-domain.de
 ```
+
+### Zentraler Login (authgate)
+
+Auf dem VPS sitzt SupBot hinter authgate, dem gemeinsamen Login aller
+`*.fabian-social.dev`-Apps: Die nginx-Site bindet
+`/etc/nginx/snippets/authgate.conf` ein, nur `/healthz` und `/zentrale/`
+bleiben ohne Login erreichbar. Mit `SUPBOT_AUTHGATE_URL` prüft die App das
+authgate-Cookie zusätzlich selbst (auch bei direktem Zugriff auf
+`127.0.0.1`); das eigene Passwort entfällt, `/login` und „Abmelden“ führen
+zu `/_auth/login` bzw. `/_auth/logout`. Ändernde Anfragen von anderen
+Subdomains werden abgewiesen (403), weil das Cookie für alle gilt.
 
 Ohne Domain: `SUPBOT_HOST=0.0.0.0` setzen und Port 8080 in der Firewall
 freigeben – dann läuft es aber unverschlüsselt, also mindestens ein starkes
