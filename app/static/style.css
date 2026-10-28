@@ -481,6 +481,17 @@ td a { text-decoration: none; font-weight: 500; }
 .cell.low { background: color-mix(in srgb, var(--accent) 22%, var(--surface-3)); }
 .cell.half { background: color-mix(in srgb, var(--accent) 55%, var(--surface-3)); }
 .cell.full { background: var(--accent); }
+.cell.missed { background: var(--danger); }
+.legend-missed { display: inline-flex; align-items: center; gap: 4px; margin-left: .75rem; }
+
+/* Verlauf-Tabelle: verpasste Tage rot + durchgestrichen, teilweise Tage orange markiert */
+.history tr.day-missed td { background: var(--danger-soft); }
+.history tr.day-missed td:first-child { box-shadow: inset 3px 0 0 var(--danger); padding-left: .6rem; }
+.history tr.day-missed td:first-child a { color: var(--danger); text-decoration: line-through; text-decoration-thickness: 2px; }
+.history tr.day-missed td:last-child { padding-right: .4rem; color: var(--danger); font-weight: 600; }
+.history tr.day-partial td:first-child { box-shadow: inset 3px 0 0 var(--warn); padding-left: .6rem; }
+.missed-tag { display: inline-block; margin-left: .35rem; padding: .05rem .45rem; border-radius: 999px; background: var(--danger); color: #fff; font-size: .7rem; font-weight: 600; vertical-align: middle; }
+@media (prefers-color-scheme: dark) { .missed-tag { color: #2a0d0a; } }
 .heat-legend { display: flex; align-items: center; gap: 4px; margin-top: .75rem; font-size: .75rem; color: var(--muted); }
 .heat-legend .cell { width: 11px; height: 11px; border-radius: 3px; }
 .heat-legend span:first-child { margin-right: .25rem; }

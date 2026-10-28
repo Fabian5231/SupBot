@@ -18,12 +18,13 @@
   </div>
   <div class="heatmap">
     {% for entry in grid %}
-      <span class="cell {% if entry.percent is none %}none{% elif entry.percent == 100 %}full{% elif entry.percent >= 50 %}half{% else %}low{% endif %}"
-            title="{{ entry.day|de_date }} – {{ entry.done }}/{{ entry.total }}"></span>
+      <span class="cell {% if entry.status == 'missed' %}missed{% elif entry.percent is none %}none{% elif entry.percent == 100 %}full{% elif entry.percent >= 50 %}half{% else %}low{% endif %}"
+            title="{{ entry.day|de_date }} – {{ entry.done }}/{{ entry.total }}{% if entry.status == 'missed' %} · verpasst{% endif %}"></span>
     {% endfor %}
   </div>
   <div class="heat-legend" aria-hidden="true">
     <span>weniger</span><span class="cell"></span><span class="cell low"></span><span class="cell half"></span><span class="cell full"></span><span>alles</span>
+    <span class="legend-missed"><span class="cell missed"></span>verpasst</span>
   </div>
 </section>
 
@@ -32,9 +33,9 @@
     <thead><tr><th>Tag</th><th>Erledigt</th><th>Quote</th></tr></thead>
     <tbody>
       {% for entry in entries %}
-      <tr>
+      <tr class="day-{{ entry.status }}">
         <td><a href="/?day={{ entry.day }}">{{ entry.day|de_date }}</a> <span class="muted">{{ entry.weekday }}</span></td>
-        <td>{{ entry.done }}/{{ entry.total }}</td>
+        <td>{{ entry.done }}/{{ entry.total }}{% if entry.status == 'missed' %} <span class="missed-tag">verpasst</span>{% endif %}</td>
         <td>
           {% if entry.percent is none %}<span class="muted">–</span>
           {% else %}

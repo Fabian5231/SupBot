@@ -403,12 +403,24 @@ def history(days: int = 30) -> list[dict]:
         row = by_day.get(current.isoformat())
         total = row["total"] if row else 0
         done = row["done"] if row else 0
+        # missed = nichts genommen; heute gilt erst als verpasst, wenn der Tag vorbei ist
+        if not total:
+            status = "none"
+        elif done >= total:
+            status = "full"
+        elif current == end:
+            status = "open"
+        elif done == 0:
+            status = "missed"
+        else:
+            status = "partial"
         out.append(
             {
                 "day": current,
                 "total": total,
                 "done": done,
                 "percent": round(done * 100 / total) if total else None,
+                "status": status,
                 "weekday": WEEKDAY_NAMES[current.weekday()],
             }
         )
