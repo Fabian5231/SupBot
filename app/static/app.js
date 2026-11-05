@@ -2,6 +2,9 @@
 (function () {
   "use strict";
 
+  // Eigener Kalender statt der Browser-Datumsfelder (datepick.js)
+  if (window.DatePick) window.DatePick.enhanceAll(document, { clearable: true });
+
   // Animation neu starten, auch wenn die Klasse schon gesetzt war
   function replay(el, cls) {
     if (!el) return;

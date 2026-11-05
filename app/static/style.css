@@ -849,3 +849,20 @@ main > :nth-child(n+7) { animation-delay: .24s; }
   *, *::before, *::after { transition: none !important; animation: none !important; }
   ::view-transition-old(root), ::view-transition-new(root) { animation: none !important; }
 }
+
+/* ---------- Kalender (datepick.css) in den Farben von SupBot ---------- */
+:root {
+  --dp-accent: var(--accent);
+  --dp-on-accent: var(--on-accent);
+  --dp-soft: var(--accent-soft);
+  --dp-surface: var(--surface);
+  --dp-field: var(--surface);
+  --dp-border: var(--line-strong);
+  --dp-text: var(--text);
+  --dp-muted: var(--muted);
+  --dp-hover: var(--bg);
+  --dp-height: 42px;
+  --dp-font: .95rem;
+  --dp-radius: var(--radius-sm);
+}
+label .dp-btn { font-weight: 400; }

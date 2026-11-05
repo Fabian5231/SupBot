@@ -1,0 +1,148 @@
+/* ---------- datepick v1 (gemeinsame Kopie, Quelle garminCon/shared/datepick.css) ----------
+ * Farben kommen aus der App: dort --dp-* auf :root (bzw. im Dark-Mode) setzen.
+ */
+.dp-native {
+  position: absolute !important;
+  width: 1px !important; height: 1px !important;
+  padding: 0 !important; margin: -1px !important; border: 0 !important;
+  overflow: hidden !important; clip: rect(0 0 0 0) !important;
+  opacity: 0 !important; pointer-events: none !important;
+}
+.dp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: inherit;
+  font-size: var(--dp-font, 14px);
+  font-variant-numeric: tabular-nums;
+  color: var(--dp-text, #1b1b1f);
+  background: var(--dp-field, #fff);
+  border: 1px solid var(--dp-border, rgba(0,0,0,.14));
+  border-radius: var(--dp-radius, 10px);
+  min-height: var(--dp-height, 36px);
+  padding: 0 12px 0 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color .15s, background-color .15s, box-shadow .15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.dp-btn svg { flex: none; color: var(--dp-muted, #6b6b73); }
+.dp-btn:hover:not(:disabled) { border-color: var(--dp-accent, #2a78d6); }
+.dp-btn:focus-visible { outline: none; border-color: var(--dp-accent, #2a78d6); box-shadow: 0 0 0 3px var(--dp-soft, rgba(42,120,214,.18)); }
+.dp-btn[aria-expanded="true"] { border-color: var(--dp-accent, #2a78d6); box-shadow: 0 0 0 3px var(--dp-soft, rgba(42,120,214,.18)); }
+.dp-btn.dp-empty .dp-btn-text { color: var(--dp-muted, #6b6b73); }
+.dp-btn:disabled { opacity: .5; cursor: default; }
+.dp-btn.dp-block { display: flex; width: 100%; }
+.dp-native.invalid + .dp-btn { border-color: var(--dp-bad, #d03b3b); box-shadow: 0 0 0 1px var(--dp-bad, #d03b3b); }
+
+.dp-pop {
+  position: fixed;
+  z-index: 1000;
+  width: 300px;
+  box-sizing: border-box;
+  padding: 12px;
+  color: var(--dp-text, #1b1b1f);
+  background: var(--dp-surface, #fff);
+  border: 1px solid var(--dp-border, rgba(0,0,0,.12));
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.16), 0 2px 6px rgba(0,0,0,.08);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  animation: dp-in .14s ease-out;
+}
+.dp-pop.dp-with-kw-pop { width: 330px; }
+@keyframes dp-in { from { opacity: 0; transform: translateY(-4px); } }
+.dp-sheet {
+  left: 0 !important; right: 0; bottom: 0; top: auto !important;
+  width: auto;
+  border-radius: 18px 18px 0 0;
+  border-bottom: 0;
+  padding: 8px 16px calc(16px + env(safe-area-inset-bottom));
+  font-size: 16px;
+  animation: dp-up .2s ease-out;
+}
+@keyframes dp-up { from { transform: translateY(100%); } }
+.dp-shade { position: fixed; inset: 0; z-index: 999; background: rgba(0,0,0,.32); animation: dp-fade .2s; }
+@keyframes dp-fade { from { opacity: 0; } }
+.dp-grip { width: 36px; height: 4px; border-radius: 2px; background: var(--dp-border, rgba(0,0,0,.2)); margin: 0 auto 10px; }
+@media (prefers-reduced-motion: reduce) { .dp-pop, .dp-sheet, .dp-shade { animation: none; } }
+
+.dp-head { display: flex; align-items: center; gap: 4px; margin-bottom: 8px; }
+.dp-title {
+  flex: 1;
+  text-align: center;
+  font: inherit;
+  font-weight: 600;
+  font-size: 1em;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: 8px;
+  padding: 6px 4px;
+}
+.dp-pickable { cursor: pointer; }
+.dp-pickable:hover { background: var(--dp-hover, rgba(0,0,0,.06)); }
+.dp-title.dp-on { background: var(--dp-accent, #2a78d6); color: var(--dp-on-accent, #fff); }
+.dp-nav {
+  flex: none;
+  width: 34px; height: 34px;
+  font: inherit; font-size: 20px; line-height: 1;
+  color: var(--dp-muted, #6b6b73);
+  background: none; border: 0; border-radius: 8px;
+  cursor: pointer;
+}
+.dp-nav:hover:not(:disabled) { background: var(--dp-hover, rgba(0,0,0,.06)); color: var(--dp-text, #1b1b1f); }
+.dp-nav:disabled { opacity: .3; cursor: default; }
+
+.dp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px 0; }
+.dp-grid.dp-with-kw { grid-template-columns: 34px repeat(7, 1fr); }
+.dp-wd { text-align: center; font-size: 11px; font-weight: 600; letter-spacing: .04em; color: var(--dp-muted, #6b6b73); padding: 2px 0 6px; }
+.dp-kwh { opacity: .7; }
+.dp-day, .dp-kw {
+  position: relative;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  height: 36px;
+  border-radius: 9px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.dp-sheet .dp-day, .dp-sheet .dp-kw { height: 44px; }
+.dp-day:hover:not(:disabled) { background: var(--dp-hover, rgba(0,0,0,.06)); }
+.dp-day:focus-visible, .dp-kw:focus-visible, .dp-nav:focus-visible, .dp-title:focus-visible, .dp-link:focus-visible {
+  outline: 2px solid var(--dp-accent, #2a78d6); outline-offset: -2px;
+}
+.dp-out { color: var(--dp-muted, #6b6b73); opacity: .55; }
+.dp-day:disabled { opacity: .28; cursor: default; }
+.dp-today { font-weight: 700; color: var(--dp-accent, #2a78d6); }
+.dp-today::after {
+  content: ""; position: absolute; left: 50%; bottom: 5px;
+  width: 4px; height: 4px; margin-left: -2px; border-radius: 50%;
+  background: currentColor;
+}
+.dp-in { background: var(--dp-soft, rgba(42,120,214,.14)); border-radius: 0; }
+.dp-in-start { border-radius: 9px 0 0 9px; }
+.dp-in-end { border-radius: 0 9px 9px 0; }
+.dp-in-start.dp-in-end { border-radius: 9px; }
+.dp-on, .dp-day.dp-on:hover, .dp-in-start, .dp-in-end, .dp-in-start:hover, .dp-in-end:hover {
+  background: var(--dp-accent, #2a78d6); color: var(--dp-on-accent, #fff); opacity: 1;
+}
+.dp-on.dp-today::after, .dp-in-start.dp-today::after, .dp-in-end.dp-today::after { background: var(--dp-on-accent, #fff); }
+.dp-kw { font-size: 11px; color: var(--dp-muted, #6b6b73); }
+.dp-kw:hover:not(:disabled) { background: var(--dp-soft, rgba(42,120,214,.14)); color: var(--dp-accent, #2a78d6); }
+.dp-kw.dp-on { color: var(--dp-on-accent, #fff); }
+.dp-kw:disabled { opacity: .3; cursor: default; }
+
+.dp-foot { display: flex; align-items: center; gap: 4px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--dp-border, rgba(0,0,0,.1)); }
+.dp-link {
+  font: inherit; font-size: 13px; font-weight: 600;
+  color: var(--dp-accent, #2a78d6);
+  background: none; border: 0; border-radius: 8px;
+  padding: 6px 10px; cursor: pointer;
+}
+.dp-sheet .dp-link { font-size: 15px; padding: 10px 12px; }
+.dp-link:hover { background: var(--dp-hover, rgba(0,0,0,.06)); }
+.dp-quiet { color: var(--dp-muted, #6b6b73); font-weight: 500; }
+.dp-hint { margin-left: auto; font-size: 11.5px; color: var(--dp-muted, #6b6b73); }
